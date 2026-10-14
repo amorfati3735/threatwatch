@@ -243,3 +243,8 @@ body {
   top: 0;
   bottom: 0;
 }
+
+/* Review mode: hide every WESAD replay control, keep only live-wearable UI. */
+body.review-mode .replay-only {
+  display: none !important;
+}

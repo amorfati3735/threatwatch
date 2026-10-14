@@ -68,6 +68,7 @@ let currentTheme = "dark";
 document.addEventListener("DOMContentLoaded", () => {
   initCharts();
   initTheme();
+  initReviewMode();
   connectWebSocket();
   fetchSubjects();
   fetchArduinoPorts();
@@ -91,6 +92,21 @@ function initTheme() {
       themeBtn.innerHTML = currentTheme === "dark" ? "☀️ Light" : "🌙 Dark";
     });
   }
+}
+
+function initReviewMode() {
+  const btn = document.getElementById("reviewModeBtn");
+  if (!btn) return;
+  const apply = (on) => {
+    document.body.classList.toggle("review-mode", on);
+    btn.innerHTML = on ? "🎓 Review Mode: ON" : "🎓 Review Mode";
+    btn.classList.toggle("btn-neon", on);
+    try { localStorage.setItem("tw_review_mode", on ? "1" : "0"); } catch (e) { /* private mode */ }
+  };
+  let on = false;
+  try { on = localStorage.getItem("tw_review_mode") === "1"; } catch (e) { /* private mode */ }
+  apply(on);
+  btn.addEventListener("click", () => apply(!document.body.classList.contains("review-mode")));
 }
 
 function connectWebSocket() {

@@ -62,7 +62,7 @@
     </div>
 
     <!-- Modality Source Selection Tabs -->
-    <div class="flex items-center gap-1 bg-uni-panel p-1 border border-uni-border rounded">
+    <div class="replay-only flex items-center gap-1 bg-uni-panel p-1 border border-uni-border rounded">
       <button id="btnSourceWesad" class="btn-uni btn-neon text-xs py-1 px-3">
         ⚡ WESAD Replay
       </button>
@@ -91,6 +91,9 @@
       </button>
       <button id="themeToggleBtn" class="btn-uni btn-dark text-xs py-1 px-2.5">
         ☀️ Light
+      </button>
+      <button id="reviewModeBtn" class="btn-uni btn-dark text-xs py-1 px-2.5 border border-uni-border hover:border-uni-neon" title="Hide all WESAD replay controls — show only the live wearable">
+        🎓 Review Mode
       </button>
     </div>
   </header>
@@ -149,7 +152,7 @@
               Wearable Sensors (WESAD Stream)
             </h2>
           </div>
-          <span id="groundTruthLabel" class="badge-uni badge-neon text-[10px]">WESAD S2</span>
+          <span id="groundTruthLabel" class="replay-only badge-uni badge-neon text-[10px]">WESAD S2</span>
         </div>
 
         <!-- Dynamic Metric Tiles -->
@@ -407,7 +410,7 @@
       </div>
 
       <!-- Sensor Replay Deck (6 Cols) -->
-      <div class="lg:col-span-6 uni-card p-4 flex flex-col justify-between">
+      <div class="replay-only lg:col-span-6 uni-card p-4 flex flex-col justify-between">
         <div class="corner-accent"></div>
         <div class="flex items-center justify-between mb-3 border-b border-uni-border pb-2">
           <h3 class="text-xs font-display font-semibold uppercase text-uni-contrast">

@@ -83,6 +83,12 @@ class HardwareSensorSource(SensorSource):
         self._ble_client: Optional[Any] = None
         self._ble_loop: Optional[Any] = None
 
+        # Device ts is seconds-since-boot and restarts whenever the board
+        # resets (which happens on USB serial open).  Rebase onto the host
+        # clock so the window buffer always sees a monotonic timeline.
+        self._ts_base: Optional[float] = None
+        self._ts_last: Optional[float] = None
+
     # -- discovery --------------------------------------------------------- #
     @staticmethod
     def list_available_ports() -> List[Dict[str, str]]:
@@ -231,6 +237,11 @@ class HardwareSensorSource(SensorSource):
         pkt = parse_line(raw)
         if pkt is None:
             return
+        now = time.time()
+        if self._ts_base is None or (self._ts_last is not None and pkt.timestamp < self._ts_last - 1.0):
+            self._ts_base = now - pkt.timestamp
+        self._ts_last = pkt.timestamp
+        pkt.timestamp = pkt.timestamp + (self._ts_base or 0.0)
         pkt.source = "hardware"
         with self._lock:
             self._latest = pkt

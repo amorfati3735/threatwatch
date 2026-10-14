@@ -59,3 +59,8 @@
 {"id": 8, "timestamp_str": "22:06:40", "timestamp_iso": "2026-10-14T22:06:40.428527", "epoch": 1791995800.4285274, "category": "ALERT", "level": "INFO", "message": "Manual alert reset by operator.", "meta": {}}
 {"id": 9, "timestamp_str": "22:06:45", "timestamp_iso": "2026-10-14T22:06:45.624303", "epoch": 1791995805.6243033, "category": "REPLAY", "level": "INFO", "message": "replay/reset {'action': 'reset'}", "meta": {}}
 {"id": 10, "timestamp_str": "22:06:50", "timestamp_iso": "2026-10-14T22:06:50.665292", "epoch": 1791995810.665292, "category": "SOURCE", "level": "INFO", "message": "Active sensor modality: HARDWARE LIVE", "meta": {}}
+{"id": 1, "timestamp_str": "22:14:14", "timestamp_iso": "2026-10-14T22:14:14.314288", "epoch": 1791996254.3142884, "category": "SYSTEM", "level": "INFO", "message": "ThreatWatch safety event log initialised.", "meta": {}}
+{"id": 2, "timestamp_str": "22:14:14", "timestamp_iso": "2026-10-14T22:14:14.316292", "epoch": 1791996254.316292, "category": "SYSTEM", "level": "INFO", "message": "ThreatWatch pipeline initialised.", "meta": {}}
+{"id": 3, "timestamp_str": "22:14:14", "timestamp_iso": "2026-10-14T22:14:14.316991", "epoch": 1791996254.3169916, "category": "MODEL", "level": "INFO", "message": "Sensor model: cnn_transformer.pt", "meta": {}}
+{"id": 4, "timestamp_str": "22:14:14", "timestamp_iso": "2026-10-14T22:14:14.318737", "epoch": 1791996254.3187375, "category": "ALERTS", "level": "INFO", "message": "Notifiers: ['null']", "meta": {}}
+{"id": 5, "timestamp_str": "22:14:31", "timestamp_iso": "2026-10-14T22:14:31.617797", "epoch": 1791996271.6177971, "category": "SOURCE", "level": "INFO", "message": "Active sensor modality: HARDWARE LIVE", "meta": {}}
