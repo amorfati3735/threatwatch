@@ -1,0 +1,39 @@
+[train] dataset: data/processed/w15_s5_fs32.npz
+[train] channels : ['hr', 'eda', 'temp', 'acc_x', 'acc_y', 'acc_z', 'acc_mag']
+[train] window   : {'window_sec': 15.0, 'stride_sec': 5.0, 'target_fs': 32.0}
+[train] task: 3-class
+[train] shapes train=(4354, 480, 7) val=(880, 480, 7) test=(1333, 480, 7)
+[train] normalisation: global, embedding scaler for 7 channels
+
+[train] cnn: batch_size=64
+[train] model=cnn params=49,347 device=cpu train=4354 val=880 test=1333 window=480x7 bs=64 augment=True normalize=global
+  epoch 01/40 | train_loss=0.8283 val_loss=1.2015 val_macroF1=0.4253 lr=3.62e-06 *
+  epoch 02/40 | train_loss=0.5222 val_loss=1.4752 val_macroF1=0.5941 lr=2.54e-04 *
+  epoch 03/40 | train_loss=0.4312 val_loss=1.5462 val_macroF1=0.6460 lr=5.04e-04 *
+  epoch 04/40 | train_loss=0.4147 val_loss=1.9286 val_macroF1=0.5392 lr=7.54e-04
+  epoch 05/40 | train_loss=0.4051 val_loss=1.5701 val_macroF1=0.3951 lr=1.00e-03
+  epoch 06/40 | train_loss=0.3757 val_loss=1.7266 val_macroF1=0.4565 lr=9.98e-04
+  epoch 07/40 | train_loss=0.3775 val_loss=1.5206 val_macroF1=0.4276 lr=9.92e-04
+  epoch 08/40 | train_loss=0.3677 val_loss=1.6566 val_macroF1=0.4214 lr=9.83e-04
+  epoch 09/40 | train_loss=0.3478 val_loss=1.5388 val_macroF1=0.4724 lr=9.70e-04
+  epoch 10/40 | train_loss=0.3574 val_loss=1.5120 val_macroF1=0.4634 lr=9.53e-04
+  epoch 11/40 | train_loss=0.3404 val_loss=1.4874 val_macroF1=0.4582 lr=9.33e-04
+  epoch 12/40 | train_loss=0.3539 val_loss=1.5916 val_macroF1=0.4314 lr=9.10e-04
+  epoch 13/40 | train_loss=0.3564 val_loss=1.6146 val_macroF1=0.4166 lr=8.83e-04
+  early stop at epoch 13 (best epoch 3)
+[train] temperature=2.459  ECE 0.1883 -> 0.1136
+[train] saved checkpoint -> /mnt/c/Users/DELL/threatwatch/models/cnn.pt
+[train] test macro-F1=0.3211 acc=0.3271 latency=0.42 ms
+
+=== cnn (test) ===
+accuracy : 0.3271
+macro-F1 : 0.3211
+weight-F1: 0.3656
+    baseline: P=1.000 R=0.316 F1=0.480 n=703
+      stress: P=0.441 R=0.155 F1=0.230 n=412
+   amusement: P=0.155 R=0.688 F1=0.253 n=218
+
+[train] wrote comparison -> /mnt/c/Users/DELL/threatwatch/results/comparison.json
+
+[train] ==== leaderboard (test macro-F1) ====
+  cnn                            macroF1=0.3211  acc=0.3271

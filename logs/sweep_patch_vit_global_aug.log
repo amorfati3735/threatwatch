@@ -1,0 +1,41 @@
+[train] dataset: data/processed/w15_s5_fs32.npz
+[train] channels : ['hr', 'eda', 'temp', 'acc_x', 'acc_y', 'acc_z', 'acc_mag']
+[train] window   : {'window_sec': 15.0, 'stride_sec': 5.0, 'target_fs': 32.0}
+[train] task: 3-class
+[train] shapes train=(4354, 480, 7) val=(880, 480, 7) test=(1333, 480, 7)
+[train] normalisation: global, embedding scaler for 7 channels
+
+[train] patch_vit: batch_size=32
+[train] model=patch_vit params=181,507 device=cpu train=4354 val=880 test=1333 window=480x7 bs=32 augment=True normalize=global
+  epoch 01/40 | train_loss=0.8088 val_loss=1.2121 val_macroF1=0.3831 lr=1.82e-06 *
+  epoch 02/40 | train_loss=0.5112 val_loss=1.3101 val_macroF1=0.4938 lr=2.52e-04 *
+  epoch 03/40 | train_loss=0.4427 val_loss=1.1708 val_macroF1=0.5338 lr=5.02e-04 *
+  epoch 04/40 | train_loss=0.4072 val_loss=1.4294 val_macroF1=0.4436 lr=7.52e-04
+  epoch 05/40 | train_loss=0.3880 val_loss=1.1551 val_macroF1=0.5359 lr=1.00e-03 *
+  epoch 06/40 | train_loss=0.3687 val_loss=1.2096 val_macroF1=0.5260 lr=9.98e-04
+  epoch 07/40 | train_loss=0.3411 val_loss=1.1741 val_macroF1=0.5054 lr=9.92e-04
+  epoch 08/40 | train_loss=0.3292 val_loss=1.3771 val_macroF1=0.5108 lr=9.83e-04
+  epoch 09/40 | train_loss=0.3377 val_loss=1.2591 val_macroF1=0.4977 lr=9.70e-04
+  epoch 10/40 | train_loss=0.3265 val_loss=1.3357 val_macroF1=0.5084 lr=9.53e-04
+  epoch 11/40 | train_loss=0.3192 val_loss=1.2924 val_macroF1=0.5287 lr=9.33e-04
+  epoch 12/40 | train_loss=0.3226 val_loss=1.2310 val_macroF1=0.5003 lr=9.10e-04
+  epoch 13/40 | train_loss=0.3124 val_loss=1.3300 val_macroF1=0.4943 lr=8.83e-04
+  epoch 14/40 | train_loss=0.3001 val_loss=1.5096 val_macroF1=0.4351 lr=8.54e-04
+  epoch 15/40 | train_loss=0.3060 val_loss=1.3300 val_macroF1=0.4645 lr=8.21e-04
+  early stop at epoch 15 (best epoch 5)
+[train] temperature=1.401  ECE 0.1274 -> 0.0949
+[train] saved checkpoint -> /mnt/c/Users/DELL/threatwatch/models/patch_vit.pt
+[train] test macro-F1=0.3310 acc=0.3383 latency=0.48 ms
+
+=== patch_vit (test) ===
+accuracy : 0.3383
+macro-F1 : 0.3310
+weight-F1: 0.3665
+    baseline: P=0.828 R=0.316 F1=0.457 n=703
+      stress: P=0.390 R=0.194 F1=0.259 n=412
+   amusement: P=0.173 R=0.683 F1=0.276 n=218
+
+[train] wrote comparison -> /mnt/c/Users/DELL/threatwatch/results/comparison.json
+
+[train] ==== leaderboard (test macro-F1) ====
+  patch_vit                      macroF1=0.3310  acc=0.3383

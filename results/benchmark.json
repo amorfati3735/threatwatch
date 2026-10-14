@@ -1,0 +1,159 @@
+{
+  "device": "cpu",
+  "torch": "2.14.1+cpu",
+  "channels": 7,
+  "target_fs": 32.0,
+  "n_train_windows": 4354,
+  "rows": [
+    {
+      "model": "cnn",
+      "window_sec": 15.0,
+      "T": 480,
+      "batch": 16,
+      "params": 49347,
+      "ms_per_batch": 10.19,
+      "epoch_min_est": 0.046,
+      "peak_mb": 0.0
+    },
+    {
+      "model": "bilstm",
+      "window_sec": 15.0,
+      "T": 480,
+      "batch": 16,
+      "params": 174994,
+      "ms_per_batch": 95.17,
+      "epoch_min_est": 0.431,
+      "peak_mb": 0.0
+    },
+    {
+      "model": "transformer",
+      "window_sec": 15.0,
+      "T": 480,
+      "batch": 16,
+      "params": 134737,
+      "ms_per_batch": 787.39,
+      "epoch_min_est": 3.57,
+      "peak_mb": 0.0
+    },
+    {
+      "model": "cnn_transformer",
+      "window_sec": 15.0,
+      "T": 480,
+      "batch": 16,
+      "params": 145859,
+      "ms_per_batch": 59.94,
+      "epoch_min_est": 0.272,
+      "peak_mb": 0.0
+    },
+    {
+      "model": "patch_vit",
+      "window_sec": 15.0,
+      "T": 480,
+      "batch": 16,
+      "params": 181507,
+      "ms_per_batch": 8.21,
+      "epoch_min_est": 0.037,
+      "peak_mb": 0.0
+    },
+    {
+      "model": "cnn",
+      "window_sec": 15.0,
+      "T": 480,
+      "batch": 32,
+      "params": 49347,
+      "ms_per_batch": 15.11,
+      "epoch_min_est": 0.034,
+      "peak_mb": 0.0
+    },
+    {
+      "model": "bilstm",
+      "window_sec": 15.0,
+      "T": 480,
+      "batch": 32,
+      "params": 174994,
+      "ms_per_batch": 133.83,
+      "epoch_min_est": 0.303,
+      "peak_mb": 0.0
+    },
+    {
+      "model": "transformer",
+      "window_sec": 15.0,
+      "T": 480,
+      "batch": 32,
+      "params": 134737,
+      "ms_per_batch": 1596.12,
+      "epoch_min_est": 3.618,
+      "peak_mb": 0.0
+    },
+    {
+      "model": "cnn_transformer",
+      "window_sec": 15.0,
+      "T": 480,
+      "batch": 32,
+      "params": 145859,
+      "ms_per_batch": 120.14,
+      "epoch_min_est": 0.272,
+      "peak_mb": 0.0
+    },
+    {
+      "model": "patch_vit",
+      "window_sec": 15.0,
+      "T": 480,
+      "batch": 32,
+      "params": 181507,
+      "ms_per_batch": 12.53,
+      "epoch_min_est": 0.028,
+      "peak_mb": 0.0
+    },
+    {
+      "model": "cnn",
+      "window_sec": 15.0,
+      "T": 480,
+      "batch": 64,
+      "params": 49347,
+      "ms_per_batch": 29.25,
+      "epoch_min_est": 0.033,
+      "peak_mb": 0.0
+    },
+    {
+      "model": "bilstm",
+      "window_sec": 15.0,
+      "T": 480,
+      "batch": 64,
+      "params": 174994,
+      "ms_per_batch": 258.26,
+      "epoch_min_est": 0.293,
+      "peak_mb": 0.0
+    },
+    {
+      "model": "transformer",
+      "window_sec": 15.0,
+      "T": 480,
+      "batch": 64,
+      "params": 134737,
+      "ms_per_batch": 3324.94,
+      "epoch_min_est": 3.768,
+      "peak_mb": 0.0
+    },
+    {
+      "model": "cnn_transformer",
+      "window_sec": 15.0,
+      "T": 480,
+      "batch": 64,
+      "params": 145859,
+      "ms_per_batch": 238.58,
+      "epoch_min_est": 0.27,
+      "peak_mb": 0.0
+    },
+    {
+      "model": "patch_vit",
+      "window_sec": 15.0,
+      "T": 480,
+      "batch": 64,
+      "params": 181507,
+      "ms_per_batch": 19.27,
+      "epoch_min_est": 0.022,
+      "peak_mb": 0.0
+    }
+  ]
+}

@@ -1,0 +1,43 @@
+{
+  "accuracy": 0.34433608402100524,
+  "macro_f1": 0.3508358664762475,
+  "weighted_f1": 0.37727106826964085,
+  "per_class": {
+    "baseline": {
+      "precision": 0.6074498567335244,
+      "recall": 0.3015647226173542,
+      "f1": 0.40304182509505704,
+      "support": 703
+    },
+    "stress": {
+      "precision": 0.615,
+      "recall": 0.29854368932038833,
+      "f1": 0.4019607843137255,
+      "support": 412
+    },
+    "amusement": {
+      "precision": 0.15816326530612246,
+      "recall": 0.5688073394495413,
+      "f1": 0.24750499001996007,
+      "support": 218
+    }
+  },
+  "confusion_matrix": [
+    [
+      212,
+      23,
+      468
+    ],
+    [
+      97,
+      123,
+      192
+    ],
+    [
+      40,
+      54,
+      124
+    ]
+  ],
+  "report": "              precision    recall  f1-score   support\n\n    baseline       0.61      0.30      0.40       703\n      stress       0.61      0.30      0.40       412\n   amusement       0.16      0.57      0.25       218\n\n    accuracy                           0.34      1333\n   macro avg       0.46      0.39      0.35      1333\nweighted avg       0.54      0.34      0.38      1333\n"
+}

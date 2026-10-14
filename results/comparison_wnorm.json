@@ -1,0 +1,46 @@
+{
+  "baseline_svm_wnorm": {
+    "test_macro_f1": 0.48603116816055714,
+    "test_accuracy": 0.5116279069767442,
+    "train_time_sec": 1.83
+  },
+  "baseline_naive_bayes_wnorm": {
+    "test_macro_f1": 0.3747726712703027,
+    "test_accuracy": 0.40960240060015,
+    "train_time_sec": 1.09
+  },
+  "baseline_random_forest_wnorm": {
+    "test_macro_f1": 0.602531516048052,
+    "test_accuracy": 0.6721680420105026,
+    "train_time_sec": 1.97
+  },
+  "baseline_logistic_wnorm": {
+    "test_macro_f1": 0.4925168035042296,
+    "test_accuracy": 0.5378844711177795,
+    "train_time_sec": 1.06
+  },
+  "cnn_wnorm": {
+    "params": 49347,
+    "test_macro_f1": 0.6129208710946302,
+    "test_accuracy": 0.7044261065266316,
+    "train_time_sec": 79.86,
+    "inference_latency_ms": 0.487,
+    "temperature": 1.5454
+  },
+  "cnn_transformer_wnorm": {
+    "params": 145859,
+    "test_macro_f1": 0.6096121206029825,
+    "test_accuracy": 0.6646661665416355,
+    "train_time_sec": 791.32,
+    "inference_latency_ms": 0.982,
+    "temperature": 2.1593
+  },
+  "patch_vit_wnorm": {
+    "params": 181507,
+    "test_macro_f1": 0.5901837426604213,
+    "test_accuracy": 0.6136534133533383,
+    "train_time_sec": 45.19,
+    "inference_latency_ms": 0.405,
+    "temperature": 1.8066
+  }
+}

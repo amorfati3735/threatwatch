@@ -1,0 +1,10 @@
+{
+  "patch_vit": {
+    "params": 181507,
+    "test_macro_f1": 0.33100589695536126,
+    "test_accuracy": 0.33833458364591146,
+    "train_time_sec": 36.99,
+    "inference_latency_ms": 0.476,
+    "temperature": 1.4009
+  }
+}

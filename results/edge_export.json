@@ -1,0 +1,32 @@
+{
+  "source_checkpoint": "models/cnn_wnorm.pt",
+  "header": "/mnt/c/Users/DELL/threatwatch/firmware/edge_model/edge_model.h",
+  "window_samples": 480,
+  "n_channels": 7,
+  "n_classes": 3,
+  "n_convs": 3,
+  "n_parameters": 48576,
+  "int8_weight_bytes": 48576,
+  "weight_plus_bias_bytes": 49356,
+  "float32_weight_bytes_if_unquantised": 194304,
+  "arena_floats": 61952,
+  "arena_bytes": 247808,
+  "arena_kb": 242.0,
+  "macs_per_window": 9484288,
+  "normalize_mode": "window",
+  "max_quantisation_error": 0.003319285809993744,
+  "layer_shapes": [
+    {
+      "out_ch": 64,
+      "len": 480
+    },
+    {
+      "out_ch": 64,
+      "len": 240
+    },
+    {
+      "out_ch": 128,
+      "len": 124
+    }
+  ]
+}

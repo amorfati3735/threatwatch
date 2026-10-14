@@ -1,0 +1,52 @@
+# ---------------------------------------------------------------------------
+# ThreatWatch — merged dependencies
+#
+# Install:  pip install -r requirements.txt
+# CPU-only PyTorch (recommended here, ~200 MB instead of ~2 GB with CUDA):
+#   pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu
+# ---------------------------------------------------------------------------
+
+# --- core scientific stack -------------------------------------------------
+numpy>=1.26
+scipy>=1.11
+scikit-learn>=1.3
+pandas>=2.0
+matplotlib>=3.7
+
+# --- deep learning ---------------------------------------------------------
+torch>=2.2
+torchvision>=0.17
+
+# --- computer vision -------------------------------------------------------
+# The dashboard is served as JPEG over WebSocket, so no GUI/display is needed.
+# On WSL the full `opencv-python` wheel needs libxcb/libGL that are not present;
+# the headless wheel provides the same `cv2` API (VideoCapture, imencode, draw)
+# without those system libraries.  On native Windows/Linux with a display, plain
+# `opencv-python` also works.
+opencv-python-headless>=4.8
+ultralytics>=8.0
+
+# --- web server / dashboard ------------------------------------------------
+fastapi>=0.110
+uvicorn[standard]>=0.23
+websockets>=11
+python-multipart>=0.0.6
+pydantic>=2.0
+python-dotenv>=1.0
+
+# --- hardware links (optional; only needed for live sensors) ---------------
+pyserial>=3.5
+bleak>=0.22
+
+# --- I/O + tooling ---------------------------------------------------------
+requests>=2.31
+tqdm>=4.66
+pyyaml>=6.0
+
+# --- experiment tracking + edge export ------------------------------------
+tensorboard>=2.14
+onnx>=1.15
+onnxruntime>=1.16
+
+# --- tests -----------------------------------------------------------------
+pytest>=7.4

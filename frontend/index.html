@@ -1,0 +1,501 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Personal Safety Monitor | Multimodal IoT Threat Detection</title>
+  
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;700&family=Unbounded:wght@400;600;800&family=Inter:wght@400;600&display=swap" rel="stylesheet">
+  
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            mono: ['"JetBrains Mono"', 'monospace'],
+            display: ['"Unbounded"', 'sans-serif'],
+            sans: ['"Inter"', 'sans-serif'],
+          },
+          colors: {
+            uni: {
+              black: 'var(--uni-black)',
+              dark: 'var(--uni-dark)',
+              panel: 'var(--uni-panel)',
+              border: 'var(--uni-border)',
+              neon: 'var(--uni-neon)',
+              alert: 'var(--uni-alert)',
+              cyan: 'var(--uni-cyan)',
+              warning: 'var(--uni-warning)',
+              text: 'var(--uni-text)',
+              contrast: 'var(--uni-text-contrast)',
+              muted: 'var(--uni-muted)'
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <link rel="stylesheet" href="/css/style.css" />
+</head>
+<body class="bg-uni-black text-uni-text font-mono selection:bg-uni-neon selection:text-uni-black">
+  <div class="grid-bg"></div>
+
+  <!-- Header -->
+  <header class="sticky top-0 z-50 bg-uni-dark/95 backdrop-blur-md border-b border-uni-border px-6 py-3 flex flex-wrap items-center justify-between gap-4">
+    <div class="flex items-center gap-3">
+      <div class="w-8 h-8 bg-uni-neon flex items-center justify-center text-uni-black font-bold font-display text-xl shadow-hard-neon">
+        U
+      </div>
+      <div>
+        <h1 class="text-base font-display font-bold tracking-tight text-uni-contrast">
+          Personal Safety Monitor
+        </h1>
+        <p class="text-[11px] text-uni-muted">
+          Multimodal IoT Threat & Distress Detection
+        </p>
+      </div>
+    </div>
+
+    <!-- Modality Source Selection Tabs -->
+    <div class="flex items-center gap-1 bg-uni-panel p-1 border border-uni-border rounded">
+      <button id="btnSourceWesad" class="btn-uni btn-neon text-xs py-1 px-3">
+        ⚡ WESAD Replay
+      </button>
+      <button id="btnSourceArduino" class="btn-uni btn-dark text-xs py-1 px-3">
+        🔌 Arduino Live
+      </button>
+    </div>
+
+    <!-- Hardware COM Port & Status -->
+    <div class="flex items-center gap-2 text-xs">
+      <select id="arduinoPortSelect" class="bg-uni-dark border border-uni-border text-uni-contrast text-xs px-2 py-1 font-mono cursor-pointer">
+        <option value="COM3">COM3 (Default)</option>
+      </select>
+      <button id="btnArduinoConnect" class="btn-uni btn-dark text-xs py-1 px-2.5 border border-uni-border hover:border-uni-neon">
+        Connect
+      </button>
+      <span id="arduinoStatusBadge" class="badge-uni text-uni-muted">Hardware: Standby</span>
+    </div>
+
+    <!-- System Controls -->
+    <div class="flex items-center gap-2">
+      <span id="wsStatusBadge" class="badge-uni badge-neon">● Live</span>
+      <span id="streamFps" class="badge-uni text-uni-muted">30 FPS</span>
+      <button id="muteBtn" class="btn-uni btn-dark text-xs py-1 px-2.5">
+        🔊 Alarm On
+      </button>
+      <button id="themeToggleBtn" class="btn-uni btn-dark text-xs py-1 px-2.5">
+        ☀️ Light
+      </button>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <main class="relative z-10 max-w-7xl mx-auto p-4 md:p-6 space-y-5">
+
+    <!-- ROW 1: LIVE WEBCAM & WEARABLE SIGNALS -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-5">
+      
+      <!-- Live Camera Feed (7 Cols) -->
+      <div class="lg:col-span-7 uni-card p-4 flex flex-col justify-between">
+        <div class="corner-accent"></div>
+        <div class="flex items-center justify-between mb-3 border-b border-uni-border pb-2">
+          <div class="flex items-center gap-2">
+            <span class="w-2 h-2 rounded-full bg-uni-neon animate-pulse"></span>
+            <h2 class="text-xs font-display font-semibold uppercase tracking-wider text-uni-contrast">
+              Camera Feed & Pose Tracking
+            </h2>
+          </div>
+          <span class="text-[11px] text-uni-cyan font-mono">YOLOv8-Pose</span>
+        </div>
+
+        <div class="relative bg-uni-dark border border-uni-border flex items-center justify-center overflow-hidden min-h-[340px]">
+          <img id="webcamFeed" src="" alt="Webcam Feed" class="w-full h-auto object-contain max-h-[380px]" />
+        </div>
+
+        <!-- Vision Stats -->
+        <div class="grid grid-cols-4 gap-2 mt-3 pt-2 border-t border-uni-border text-center">
+          <div class="bg-uni-dark p-2 border border-uni-border/60">
+            <div class="text-[10px] text-uni-muted uppercase">Posture</div>
+            <div id="visionPosture" class="text-xs font-bold text-uni-contrast mt-0.5 truncate">Sitting Upright</div>
+          </div>
+          <div class="bg-uni-dark p-2 border border-uni-border/60">
+            <div class="text-[10px] text-uni-muted uppercase">Expression</div>
+            <div id="visionExpression" class="text-xs font-bold text-uni-neon mt-0.5 truncate">Neutral</div>
+          </div>
+          <div class="bg-uni-dark p-2 border border-uni-border/60">
+            <div class="text-[10px] text-uni-muted uppercase">Movement</div>
+            <div id="visionMovement" class="text-xs font-bold text-uni-cyan mt-0.5 truncate">Normal</div>
+          </div>
+          <div class="bg-uni-dark p-2 border border-uni-border/60">
+            <div class="text-[10px] text-uni-muted uppercase">Visual Distress</div>
+            <div id="visionDistressScore" class="text-xs font-bold text-uni-neon mt-0.5">5%</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Wearable Sensor Signals (5 Cols) -->
+      <div class="lg:col-span-5 uni-card p-4 flex flex-col justify-between">
+        <div class="corner-accent"></div>
+        <div class="flex items-center justify-between mb-3 border-b border-uni-border pb-2">
+          <div class="flex items-center gap-2">
+            <span class="w-2 h-2 rounded-full bg-uni-cyan animate-pulse"></span>
+            <h2 id="sensorCardTitle" class="text-xs font-display font-semibold uppercase tracking-wider text-uni-contrast">
+              Wearable Sensors (WESAD Stream)
+            </h2>
+          </div>
+          <span id="groundTruthLabel" class="badge-uni badge-neon text-[10px]">WESAD S2</span>
+        </div>
+
+        <!-- Dynamic Metric Tiles -->
+        <div class="grid grid-cols-3 gap-2 mb-3">
+          <div class="bg-uni-dark p-2.5 border border-uni-border">
+            <div class="text-[10px] text-uni-muted uppercase">Heart Rate</div>
+            <div id="valHR" class="text-sm font-display font-bold text-uni-contrast mt-1">-- BPM</div>
+          </div>
+          <div class="bg-uni-dark p-2.5 border border-uni-border">
+            <div id="lblSlot2" class="text-[10px] text-uni-muted uppercase">EDA (Sweat)</div>
+            <div id="valSlot2" class="text-sm font-display font-bold text-uni-cyan mt-1">-- µS</div>
+          </div>
+          <div class="bg-uni-dark p-2.5 border border-uni-border">
+            <div id="lblSlot3" class="text-[10px] text-uni-muted uppercase">Respiration</div>
+            <div id="valSlot3" class="text-sm font-display font-bold text-uni-neon mt-1">--</div>
+          </div>
+          <div class="bg-uni-dark p-2.5 border border-uni-border">
+            <div id="lblSlot4" class="text-[10px] text-uni-muted uppercase">Skin Temp</div>
+            <div id="valSlot4" class="text-sm font-display font-bold text-uni-contrast mt-1">-- °C</div>
+          </div>
+          <div class="bg-uni-dark p-2.5 border border-uni-border">
+            <div class="text-[10px] text-uni-muted uppercase">Motion Mag</div>
+            <div id="valAcc" class="text-sm font-display font-bold text-uni-warning mt-1">-- g</div>
+          </div>
+          <div class="bg-uni-dark p-2.5 border border-uni-border">
+            <div class="text-[10px] text-uni-muted uppercase">Sensor Distress</div>
+            <div id="sensorDistressScore" class="text-sm font-display font-bold text-uni-neon mt-1">5%</div>
+          </div>
+        </div>
+
+        <!-- Real-Time Waveform Charts -->
+        <div class="space-y-2">
+          <div>
+            <div class="flex justify-between text-[10px] text-uni-muted mb-0.5">
+              <span id="chartLabel1">Electrodermal Activity (EDA)</span>
+              <span class="text-uni-cyan">Live</span>
+            </div>
+            <canvas id="edaCanvas" width="360" height="40" class="w-full h-10 bg-uni-dark border border-uni-border"></canvas>
+          </div>
+          <div>
+            <div class="flex justify-between text-[10px] text-uni-muted mb-0.5">
+              <span id="chartLabel2">Respiration Waveform</span>
+              <span class="text-uni-neon">Live</span>
+            </div>
+            <canvas id="respCanvas" width="360" height="40" class="w-full h-10 bg-uni-dark border border-uni-border"></canvas>
+          </div>
+          <div>
+            <div class="flex justify-between text-[10px] text-uni-muted mb-0.5">
+              <span id="chartLabel3">Acceleration Magnitude (g)</span>
+              <span class="text-uni-warning">Live</span>
+            </div>
+            <canvas id="accCanvas" width="360" height="40" class="w-full h-10 bg-uni-dark border border-uni-border"></canvas>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ROW 2: ML MODEL PROBABILITIES -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+      
+      <!-- Sensor Inference Model -->
+      <div class="uni-card p-4">
+        <div class="corner-accent"></div>
+        <div class="flex items-center justify-between mb-3 border-b border-uni-border pb-2">
+          <h3 id="modelCardTitle" class="text-xs font-display font-semibold uppercase text-uni-contrast">
+            Sensor Sequence Model (LSTM)
+          </h3>
+          <span id="sensorLatency" class="badge-uni text-uni-muted">1.8 ms</span>
+        </div>
+
+        <div class="space-y-2.5">
+          <div>
+            <div class="flex justify-between text-xs mb-1">
+              <span id="lblProb1" class="text-uni-muted">Baseline State (Calm)</span>
+              <span id="probBaseline" class="font-bold text-uni-neon">88%</span>
+            </div>
+            <div class="w-full h-2 bg-uni-dark border border-uni-border">
+              <div id="barBaseline" class="h-full bg-uni-neon transition-all duration-200" style="width: 88%"></div>
+            </div>
+          </div>
+
+          <div>
+            <div class="flex justify-between text-xs mb-1">
+              <span id="lblProb2" class="text-uni-muted">Stress / Distress State</span>
+              <span id="probStress" class="font-bold text-uni-alert">8%</span>
+            </div>
+            <div class="w-full h-2 bg-uni-dark border border-uni-border">
+              <div id="barStress" class="h-full bg-uni-alert transition-all duration-200" style="width: 8%"></div>
+            </div>
+          </div>
+
+          <div>
+            <div class="flex justify-between text-xs mb-1">
+              <span id="lblProb3" class="text-uni-muted">Amusement / Motion State</span>
+              <span id="probAmusement" class="font-bold text-uni-cyan">4%</span>
+            </div>
+            <div class="w-full h-2 bg-uni-dark border border-uni-border">
+              <div id="barAmusement" class="h-full bg-uni-cyan transition-all duration-200" style="width: 4%"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Vision Model -->
+      <div class="uni-card p-4">
+        <div class="corner-accent"></div>
+        <div class="flex items-center justify-between mb-3 border-b border-uni-border pb-2">
+          <h3 class="text-xs font-display font-semibold uppercase text-uni-contrast">
+            Vision Model (Pose & Face)
+          </h3>
+          <span class="badge-uni badge-cyan">GPU Accelerated</span>
+        </div>
+
+        <div class="space-y-2.5">
+          <div>
+            <div class="flex justify-between text-xs mb-1">
+              <span class="text-uni-muted">Visual Distress Level</span>
+              <span id="visionDistressBarText" class="font-bold text-uni-neon">5%</span>
+            </div>
+            <div class="w-full h-2 bg-uni-dark border border-uni-border">
+              <div id="visionDistressBar" class="h-full bg-uni-neon transition-all duration-200" style="width: 5%"></div>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-2 gap-2 pt-1 text-xs">
+            <div class="bg-uni-dark p-2 border border-uni-border">
+              <span class="text-[10px] text-uni-muted block">Fall / Collapse Detection</span>
+              <span class="text-uni-contrast font-semibold">Shoulder & Head Angle</span>
+            </div>
+            <div class="bg-uni-dark p-2 border border-uni-border">
+              <span class="text-[10px] text-uni-muted block">Defensive Struggle</span>
+              <span class="text-uni-contrast font-semibold">Raised Arms & Head Shield</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ROW 3: MULTIMODAL FUSION & THREAT LEVEL GAUGE -->
+    <div class="uni-card p-5 border-2 border-uni-border shadow-hard-neon">
+      <div class="corner-accent"></div>
+      
+      <div class="flex flex-wrap items-center justify-between gap-4 mb-4">
+        <div>
+          <h2 class="text-sm font-display font-bold uppercase text-uni-contrast">
+            Multimodal Threat Decision
+          </h2>
+          <p class="text-xs text-uni-muted">Combines physiological signals and visual cues into an auditable safety verdict</p>
+        </div>
+        <div class="flex items-center gap-3">
+          <span id="fusionConsensus" class="badge-uni badge-cyan text-xs">Normal / Congruent</span>
+          <div id="stateBadge" class="btn-uni btn-neon text-sm px-4 py-2 font-display">
+            SAFE
+          </div>
+          <button id="btnAlertReset" class="btn-uni btn-dark text-xs py-2 px-3 border border-uni-border hover:border-uni-alert">
+            Reset Alarm
+          </button>
+        </div>
+      </div>
+
+      <!-- Large Score Gauge -->
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-center">
+        <div class="lg:col-span-4 text-center lg:text-left">
+          <div class="text-xs text-uni-muted uppercase font-mono">
+            Final Threat Score
+          </div>
+          <div id="threatScoreText" class="text-5xl font-display font-extrabold text-uni-contrast mt-1">
+            2.0%
+          </div>
+          <div class="flex gap-2 text-[11px] text-uni-muted mt-2">
+            <span id="sensorWeightDisp">Sensor (60%)</span>
+            <span>+</span>
+            <span id="visionWeightDisp">Vision (40%)</span>
+          </div>
+        </div>
+
+        <!-- Meter Bar & History Plot (8 Cols) -->
+        <div class="lg:col-span-8 space-y-3">
+          <div>
+            <div class="threat-meter-container">
+              <div class="threat-zone-safe"></div>
+              <div class="threat-zone-caution"></div>
+              <div class="threat-zone-threat"></div>
+              <div id="threatMeterFill" class="threat-meter-fill bg-uni-neon" style="width: 2%"></div>
+            </div>
+            <div class="flex justify-between text-[10px] text-uni-muted mt-1 font-mono">
+              <span class="text-uni-neon">0.0 Safe</span>
+              <span class="text-uni-cyan">0.40 Caution</span>
+              <span class="text-uni-alert">0.70 Threat</span>
+              <span>1.0</span>
+            </div>
+          </div>
+
+          <!-- Rolling Score Timeline Canvas -->
+          <div>
+            <div class="text-[10px] text-uni-muted mb-0.5">Threat Level Over Time (Requires 2.5s Persistence)</div>
+            <canvas id="threatCanvas" width="600" height="65" class="w-full h-16 bg-uni-dark border border-uni-border"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <!-- Modality Weight Tuning -->
+      <div class="mt-4 pt-3 border-t border-uni-border flex flex-wrap items-center justify-between gap-4 text-xs">
+        <div class="flex items-center gap-3">
+          <span class="text-uni-muted">Sensor Weight: <b id="sensorWeightLabel" class="text-uni-contrast">60%</b></span>
+          <input type="range" id="sensorWeightSlider" min="0.1" max="0.9" step="0.05" value="0.6" class="accent-uni-neon cursor-pointer" />
+          <span class="text-uni-muted">Vision Weight: <b id="visionWeightLabel" class="text-uni-contrast">40%</b></span>
+        </div>
+        <div class="text-[11px] text-uni-muted italic">
+          *Single-modality spikes (e.g. running or stretching) are capped at Caution to avoid false emergencies.
+        </div>
+      </div>
+    </div>
+
+    <!-- ROW 4: DEMO SCENARIOS & REPLAY CONTROLS -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-5">
+      
+      <!-- Evaluation Scenarios (6 Cols) -->
+      <div class="lg:col-span-6 uni-card p-4">
+        <div class="corner-accent"></div>
+        <div class="flex items-center justify-between mb-3 border-b border-uni-border pb-2">
+          <h3 class="text-xs font-display font-semibold uppercase text-uni-contrast">
+            Demo Scenarios
+          </h3>
+          <span id="activeScenarioDisplay" class="badge-uni badge-neon text-[10px]">Live Free</span>
+        </div>
+
+        <div class="grid grid-cols-2 gap-2">
+          <button data-scenario="NORMAL" class="btn-uni btn-dark border border-uni-border hover:border-uni-neon text-left p-2.5 flex flex-col items-start">
+            <span class="font-bold text-uni-contrast text-xs">1. Normal Baseline</span>
+            <span class="text-[10px] text-uni-muted mt-0.5">Calm sensors + calm camera → Safe</span>
+          </button>
+
+          <button data-scenario="PHYSIOLOGICAL_DISTRESS" class="btn-uni btn-dark border border-uni-border hover:border-uni-cyan text-left p-2.5 flex flex-col items-start">
+            <span class="font-bold text-uni-contrast text-xs">2. High Heart Rate Only</span>
+            <span class="text-[10px] text-uni-muted mt-0.5">High stress + calm camera → Caution (50%)</span>
+          </button>
+
+          <button data-scenario="MULTIMODAL_THREAT" class="btn-uni btn-dark border border-uni-border hover:border-uni-alert text-left p-2.5 flex flex-col items-start">
+            <span class="font-bold text-uni-alert text-xs">3. Multimodal Threat</span>
+            <span class="text-[10px] text-uni-muted mt-0.5">High stress + pose anomaly → Threat (92%)</span>
+          </button>
+
+          <button data-scenario="FALSE_POSITIVE_REDUCTION" class="btn-uni btn-dark border border-uni-border hover:border-uni-neon text-left p-2.5 flex flex-col items-start">
+            <span class="font-bold text-uni-contrast text-xs">4. False Alarm Filter</span>
+            <span class="text-[10px] text-uni-muted mt-0.5">Demonstrates suppression to Caution</span>
+          </button>
+        </div>
+
+        <div class="mt-2 text-center">
+          <button data-scenario="LIVE_FREE" class="btn-uni btn-neon w-full py-1.5 text-xs">
+            ⚡ Resume Live Free Stream
+          </button>
+        </div>
+      </div>
+
+      <!-- Sensor Replay Deck (6 Cols) -->
+      <div class="lg:col-span-6 uni-card p-4 flex flex-col justify-between">
+        <div class="corner-accent"></div>
+        <div class="flex items-center justify-between mb-3 border-b border-uni-border pb-2">
+          <h3 class="text-xs font-display font-semibold uppercase text-uni-contrast">
+            Sensor Replay & Timeline
+          </h3>
+          <div class="flex items-center gap-2">
+            <span class="text-[10px] text-uni-muted">Subject:</span>
+            <select id="subjectSelect" class="bg-uni-dark border border-uni-border text-uni-contrast text-xs px-2 py-0.5 font-mono cursor-pointer">
+              <option value="S2">S2</option>
+              <option value="S3">S3</option>
+              <option value="S4">S4</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Direct Physiological Segment Preset Jumps -->
+        <div class="grid grid-cols-3 gap-1.5 mb-2.5 text-center">
+          <button id="jumpBaseline" class="badge-uni hover:border-uni-neon p-1.5 text-[10px] text-uni-contrast bg-uni-dark cursor-pointer">
+            <span class="text-uni-neon block font-bold">0:00 Baseline</span>
+            <span class="text-[9px] text-uni-muted">HR ~72, Low EDA</span>
+          </button>
+          <button id="jumpStress" class="badge-uni hover:border-uni-alert p-1.5 text-[10px] text-uni-contrast bg-uni-dark cursor-pointer">
+            <span class="text-uni-alert block font-bold">8:00 Stress</span>
+            <span class="text-[9px] text-uni-muted">HR ~102, High EDA</span>
+          </button>
+          <button id="jumpAmusement" class="badge-uni hover:border-uni-cyan p-1.5 text-[10px] text-uni-contrast bg-uni-dark cursor-pointer">
+            <span class="text-uni-cyan block font-bold">14:00 Amusement</span>
+            <span class="text-[9px] text-uni-muted">HR ~80, Dynamic</span>
+          </button>
+        </div>
+
+        <!-- Scrubber Progress Bar -->
+        <div class="mb-3">
+          <div class="flex justify-between text-[10px] text-uni-muted mb-1">
+            <span>Timeline Position</span>
+            <span id="elapsedTime">0s / 0s</span>
+          </div>
+          <div id="timelineScrubber" class="w-full h-2.5 bg-uni-dark border border-uni-border cursor-pointer relative">
+            <div id="replayProgressBar" class="h-full bg-uni-cyan" style="width: 0%"></div>
+          </div>
+        </div>
+
+        <!-- Control Buttons & Speeds -->
+        <div class="flex flex-wrap items-center justify-between gap-2">
+          <div class="flex items-center gap-1.5">
+            <button id="btnPlay" class="btn-uni btn-neon text-xs py-1 px-3">▶ Play</button>
+            <button id="btnPause" class="btn-uni btn-dark text-xs py-1 px-3">⏸ Pause</button>
+            <button id="btnReset" class="btn-uni btn-dark text-xs py-1 px-3">↺ Restart</button>
+          </div>
+
+          <!-- Speeds -->
+          <div class="flex items-center gap-1">
+            <button data-speed="0.5" class="badge-uni hover:border-uni-neon cursor-pointer">0.5x</button>
+            <button data-speed="1.0" class="badge-uni hover:border-uni-neon cursor-pointer">1.0x</button>
+            <button data-speed="2.0" class="badge-uni hover:border-uni-neon cursor-pointer">2.0x</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ROW 5: EVENT AUDIT LOG -->
+    <div class="uni-card p-4">
+      <div class="corner-accent"></div>
+      <div class="flex items-center justify-between mb-3 border-b border-uni-border pb-2">
+        <div class="flex items-center gap-2">
+          <h3 class="text-xs font-display font-semibold uppercase text-uni-contrast">
+            Event Log
+          </h3>
+          <span class="badge-uni text-uni-muted">Live Stream</span>
+        </div>
+        <div class="flex items-center gap-2">
+          <a href="/api/logs/export/json" download class="btn-uni btn-dark text-[10px] py-1 px-2">
+            Export JSON
+          </a>
+          <a href="/api/logs/export/csv" download class="btn-uni btn-dark text-[10px] py-1 px-2">
+            Export CSV
+          </a>
+        </div>
+      </div>
+
+      <div id="eventLogContainer" class="max-h-40 overflow-y-auto space-y-1 pr-1 font-mono text-xs">
+        <div class="text-uni-muted text-center py-3">Waiting for events...</div>
+      </div>
+    </div>
+
+  </main>
+
+  <script src="/js/charts.js"></script>
+  <script src="/js/app.js"></script>
+</body>
+</html>

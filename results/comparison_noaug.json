@@ -1,0 +1,10 @@
+{
+  "patch_vit_noaug": {
+    "params": 181507,
+    "test_macro_f1": 0.3308005474038072,
+    "test_accuracy": 0.33833458364591146,
+    "train_time_sec": 33.68,
+    "inference_latency_ms": 0.391,
+    "temperature": 1.9103
+  }
+}

@@ -1,0 +1,41 @@
+Dear, your final project review (8 Marks) is planned on 
+
+Thursday (15/10/2026) - For even group No.  
+Friday (16/10/2026) - For odd group No.
+
+Venue: PRP 372
+Timing: Class time 
+
+Write-up Submission (6 Marks):
+Follow the template similar to the base paper (which I mailed you when I allotted the project title). For the write-up, don't follow the two-column format.
+ 
+1-Title, Author's name, 
+2-Abstract (250 words), Keywords(6-10 words)
+3-Introduction (Background and motivation, Real-world importance of the problem, Why Arduino + ML is a suitable approach, Scope of the project)
+4-Literature survey (4–8 recent papers and key research gaps in existing works)
+5-Problem Statement & Objectives (what you want to achieve in bullet points)
+5-System Architecture / Block Diagram - High-level system diagram (Arduino + sensors + ML pipeline), Circuit Diagram
+6-Hardware connection diagram (neat and with all components); you can include multiple figures. Also, hardware design description and component details.
+7-Software & Machine Learning Design-
+
+    Software tools & libraries used (Arduino IDE, Python, TensorFlow Lite, Edge Impulse, scikit-learn, etc.)
+    Data collection method and dataset description, Preprocessing steps
+    ML model selection and architecture (with diagram if neural network etc.)
+    Training process (hyperparameters, dataset split, epochs, etc.)
+    Model optimization for Arduino / edge deployment (quantization, pruning, etc.)
+
+8-Implementation Details- Step-by-step implementation, Important code snippets or pseudo-code, Integration of Arduino code with ML model, Communication protocols used (Serial, I2C, SPI, Wi-Fi, Bluetooth)
+9-Experimental Setup
+
+    Test environment, How data was collected for evaluation
+    Performance metrics used (Accuracy, Precision, Recall, F1-score, Latency, Power consumption, Memory usage)
+    Comparison with baseline (if any)
+
+10- Results and discussion
+
+    Quantitative results (tables + graphs), Confusion matrix / ROC curve (if classification), Real-time performance on Arduino (inference time, memory footprint)
+    Discussion of results – what worked well, limitations observed, Error analysis
+
+11-Conclusion
+
+Note: Also include the drive link of the dataset used in the project. 

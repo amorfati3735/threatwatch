@@ -1,0 +1,42 @@
+{
+  "random_forest": {
+    "test_macro_f1": 0.5023947823922419,
+    "test_accuracy": 0.4878419452887538,
+    "test_weighted_f1": 0.5261911035066688,
+    "params": "\u2013",
+    "train_time_sec": 0.81,
+    "inference_latency_ms": 0.0
+  },
+  "logistic": {
+    "test_macro_f1": 0.5093483147388431,
+    "test_accuracy": 0.5334346504559271,
+    "test_weighted_f1": 0.5271173671968364,
+    "params": "\u2013",
+    "train_time_sec": 0.06,
+    "inference_latency_ms": 0.0
+  },
+  "cnn": {
+    "test_macro_f1": 0.3612669427271779,
+    "test_accuracy": 0.3586626139817629,
+    "test_weighted_f1": 0.40025592023042383,
+    "params": 49347,
+    "train_time_sec": 38.74,
+    "inference_latency_ms": 0.602
+  },
+  "bilstm": {
+    "test_macro_f1": 0.256811625844578,
+    "test_accuracy": 0.27811550151975684,
+    "test_weighted_f1": 0.3378657299256383,
+    "params": 174994,
+    "train_time_sec": 548.03,
+    "inference_latency_ms": 5.885
+  },
+  "cnn_transformer": {
+    "test_macro_f1": 0.363246757168308,
+    "test_accuracy": 0.3601823708206687,
+    "test_weighted_f1": 0.4082061696782068,
+    "params": 145859,
+    "train_time_sec": 478.04,
+    "inference_latency_ms": 1.847
+  }
+}

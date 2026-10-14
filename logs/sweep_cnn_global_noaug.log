@@ -1,0 +1,38 @@
+[train] dataset: data/processed/w15_s5_fs32.npz
+[train] channels : ['hr', 'eda', 'temp', 'acc_x', 'acc_y', 'acc_z', 'acc_mag']
+[train] window   : {'window_sec': 15.0, 'stride_sec': 5.0, 'target_fs': 32.0}
+[train] task: 3-class
+[train] shapes train=(4354, 480, 7) val=(880, 480, 7) test=(1333, 480, 7)
+[train] normalisation: global, embedding scaler for 7 channels
+
+[train] cnn: batch_size=64
+[train] model=cnn params=49,347 device=cpu train=4354 val=880 test=1333 window=480x7 bs=64 augment=False normalize=global
+  epoch 01/40 | train_loss=0.8075 val_loss=1.1975 val_macroF1=0.4137 lr=3.62e-06 *
+  epoch 02/40 | train_loss=0.4675 val_loss=1.5274 val_macroF1=0.5582 lr=2.54e-04 *
+  epoch 03/40 | train_loss=0.3710 val_loss=1.5516 val_macroF1=0.5560 lr=5.04e-04
+  epoch 04/40 | train_loss=0.3381 val_loss=1.9431 val_macroF1=0.4286 lr=7.54e-04
+  epoch 05/40 | train_loss=0.3324 val_loss=1.5975 val_macroF1=0.3729 lr=1.00e-03
+  epoch 06/40 | train_loss=0.3036 val_loss=1.7142 val_macroF1=0.4700 lr=9.98e-04
+  epoch 07/40 | train_loss=0.3054 val_loss=1.5696 val_macroF1=0.3964 lr=9.92e-04
+  epoch 08/40 | train_loss=0.3146 val_loss=1.7017 val_macroF1=0.4115 lr=9.83e-04
+  epoch 09/40 | train_loss=0.2873 val_loss=1.5879 val_macroF1=0.4261 lr=9.70e-04
+  epoch 10/40 | train_loss=0.2762 val_loss=1.5042 val_macroF1=0.3993 lr=9.53e-04
+  epoch 11/40 | train_loss=0.2712 val_loss=1.4572 val_macroF1=0.4478 lr=9.33e-04
+  epoch 12/40 | train_loss=0.2778 val_loss=1.6772 val_macroF1=0.4097 lr=9.10e-04
+  early stop at epoch 12 (best epoch 2)
+[train] temperature=2.552  ECE 0.1001 -> 0.1512
+[train] saved checkpoint -> /mnt/c/Users/DELL/threatwatch/models/cnn_noaug.pt
+[train] test macro-F1=0.3298 acc=0.3226 latency=0.41 ms
+
+=== cnn_noaug (test) ===
+accuracy : 0.3226
+macro-F1 : 0.3298
+weight-F1: 0.3949
+    baseline: P=0.973 R=0.313 F1=0.474 n=703
+      stress: P=0.442 R=0.396 F1=0.417 n=412
+   amusement: P=0.064 R=0.216 F1=0.098 n=218
+
+[train] wrote comparison -> /mnt/c/Users/DELL/threatwatch/results/comparison_noaug.json
+
+[train] ==== leaderboard (test macro-F1) ====
+  cnn_noaug                      macroF1=0.3298  acc=0.3226

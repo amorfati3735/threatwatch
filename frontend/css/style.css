@@ -1,0 +1,245 @@
+/* UniArchives-Matched Cyber-Industrial Design System */
+:root {
+  --uni-black: #050505;
+  --uni-dark: #0a0a0a;
+  --uni-panel: #111111;
+  --uni-border: #2a2a2a;
+  --uni-text: #e0e0e0;
+  --uni-text-contrast: #ffffff;
+  --uni-muted: #666666;
+  
+  --uni-neon: #ccff00;
+  --uni-cyan: #00f0ff;
+  --uni-alert: #ff003c;
+  --uni-warning: #ffb700;
+}
+
+[data-theme='light'] {
+  --uni-black: #fafafa;
+  --uni-dark: #ffffff;
+  --uni-panel: #f4f4f5;
+  --uni-border: #e4e4e7;
+  --uni-text: #52525b;
+  --uni-text-contrast: #18181b;
+  --uni-muted: #a1a1aa;
+
+  --uni-neon: #65a30d; 
+  --uni-cyan: #0891b2;
+  --uni-alert: #e11d48;
+  --uni-warning: #d97706;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background-color: var(--uni-black);
+  color: var(--uni-text);
+  font-family: 'JetBrains Mono', monospace;
+  transition: background-color 0.3s, color 0.3s;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* Background Grid Overlay */
+.grid-bg {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.05;
+  background-image: 
+    linear-gradient(var(--uni-text) 1px, transparent 1px), 
+    linear-gradient(90deg, var(--uni-text) 1px, transparent 1px);
+  background-size: 40px 40px;
+  z-index: 0;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: var(--uni-dark); 
+}
+::-webkit-scrollbar-thumb {
+  background: #333; 
+  border: 1px solid var(--uni-black);
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--uni-neon); 
+}
+
+/* Brutalist Panels */
+.uni-card {
+  position: relative;
+  background-color: var(--uni-panel);
+  border: 1px solid var(--uni-border);
+  transition: all 0.25s ease;
+}
+
+.uni-card:hover {
+  border-color: var(--uni-neon);
+  box-shadow: 0 0 15px rgba(204, 255, 0, 0.08);
+}
+
+.corner-accent {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 14px;
+  height: 14px;
+  border-top: 2px solid var(--uni-neon);
+  border-right: 2px solid var(--uni-neon);
+  pointer-events: none;
+}
+
+/* Hard Shadows */
+.shadow-hard-neon {
+  box-shadow: 4px 4px 0px 0px var(--uni-neon);
+}
+.shadow-hard-cyan {
+  box-shadow: 4px 4px 0px 0px var(--uni-cyan);
+}
+.shadow-hard-alert {
+  box-shadow: 4px 4px 0px 0px var(--uni-alert);
+}
+
+/* Brutalist Interactive Buttons */
+.btn-uni {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 8px 14px;
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: all 0.15s ease;
+}
+
+.btn-uni:hover {
+  transform: translate(-2px, -2px);
+}
+
+.btn-uni:active {
+  transform: translate(2px, 2px);
+  box-shadow: none !important;
+}
+
+.btn-neon {
+  background-color: var(--uni-neon);
+  color: #050505;
+  border-color: var(--uni-neon);
+  box-shadow: 3px 3px 0px 0px var(--uni-cyan);
+}
+.btn-neon:hover {
+  background-color: #ffffff;
+  border-color: #ffffff;
+}
+
+.btn-dark {
+  background-color: var(--uni-dark);
+  color: var(--uni-text-contrast);
+  border-color: var(--uni-border);
+  box-shadow: 3px 3px 0px 0px var(--uni-border);
+}
+.btn-dark:hover {
+  border-color: var(--uni-neon);
+  color: var(--uni-neon);
+}
+
+.btn-alert {
+  background-color: var(--uni-alert);
+  color: #ffffff;
+  border-color: var(--uni-alert);
+  box-shadow: 3px 3px 0px 0px #000000;
+}
+
+/* Badge Styles */
+.badge-uni {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 2px 6px;
+  border: 1px solid var(--uni-border);
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.badge-neon {
+  color: var(--uni-neon);
+  border-color: rgba(204, 255, 0, 0.3);
+  background: rgba(204, 255, 0, 0.08);
+}
+
+.badge-cyan {
+  color: var(--uni-cyan);
+  border-color: rgba(0, 240, 255, 0.3);
+  background: rgba(0, 240, 255, 0.08);
+}
+
+.badge-alert {
+  color: var(--uni-alert);
+  border-color: rgba(255, 0, 60, 0.4);
+  background: rgba(255, 0, 60, 0.12);
+}
+
+/* Pulse animation for Threat */
+@keyframes alertPulse {
+  0% { box-shadow: 0 0 0 0 rgba(255, 0, 60, 0.7); }
+  70% { box-shadow: 0 0 0 15px rgba(255, 0, 60, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(255, 0, 60, 0); }
+}
+
+.pulse-threat {
+  animation: alertPulse 1.2s infinite;
+}
+
+/* Gauge Bar */
+.threat-meter-container {
+  position: relative;
+  width: 100%;
+  height: 28px;
+  background: var(--uni-dark);
+  border: 1px solid var(--uni-border);
+  overflow: hidden;
+}
+
+.threat-meter-fill {
+  height: 100%;
+  transition: width 0.3s ease, background-color 0.3s ease;
+}
+
+.threat-zone-safe {
+  position: absolute;
+  left: 0%;
+  width: 40%;
+  top: 0;
+  bottom: 0;
+  border-right: 1px dashed rgba(204, 255, 0, 0.3);
+}
+
+.threat-zone-caution {
+  position: absolute;
+  left: 40%;
+  width: 30%;
+  top: 0;
+  bottom: 0;
+  border-right: 1px dashed rgba(0, 240, 255, 0.3);
+}
+
+.threat-zone-threat {
+  position: absolute;
+  left: 70%;
+  width: 30%;
+  top: 0;
+  bottom: 0;
+}

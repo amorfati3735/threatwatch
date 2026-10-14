@@ -1,0 +1,135 @@
+[train] dataset: data/processed/w15_s5_fs32.npz
+[train] channels : ['hr', 'eda', 'temp', 'acc_x', 'acc_y', 'acc_z', 'acc_mag']
+[train] window   : {'window_sec': 15.0, 'stride_sec': 5.0, 'target_fs': 32.0}
+[train] task: 3-class
+[train] shapes train=(4354, 480, 7) val=(880, 480, 7) test=(1333, 480, 7)
+[train] embedding scaler for 7 channels
+
+=== BASELINE random_forest (test) ===
+accuracy : 0.3443
+macro-F1 : 0.3508
+weight-F1: 0.3773
+    baseline: P=0.607 R=0.302 F1=0.403 n=703
+      stress: P=0.615 R=0.299 F1=0.402 n=412
+   amusement: P=0.158 R=0.569 F1=0.248 n=218
+/home/pratik/.venvs/threatwatch/lib/python3.14/site-packages/sklearn/linear_model/_logistic.py:1435: FutureWarning: 'n_jobs' has no effect since 1.8 and will be removed in 1.10. You provided 'n_jobs=-1', please leave it unspecified.
+  warnings.warn(msg, category=FutureWarning)
+
+=== BASELINE logistic (test) ===
+accuracy : 0.5169
+macro-F1 : 0.4962
+weight-F1: 0.5163
+    baseline: P=0.802 R=0.323 F1=0.460 n=703
+      stress: P=0.622 R=0.864 F1=0.724 n=412
+   amusement: P=0.222 R=0.486 F1=0.305 n=218
+
+[train] cnn: batch_size=64
+[train] model=cnn params=49,347 device=cpu train=4354 val=880 test=1333 window=480x7 bs=64
+  epoch 01/60 | train_loss=0.8539 val_loss=1.1486 val_macroF1=0.3742 lr=2.42e-06 *
+  epoch 02/60 | train_loss=0.5167 val_loss=1.4229 val_macroF1=0.5090 lr=1.69e-04 *
+  epoch 03/60 | train_loss=0.3930 val_loss=1.5604 val_macroF1=0.5246 lr=3.36e-04 *
+  epoch 04/60 | train_loss=0.3493 val_loss=1.9048 val_macroF1=0.4711 lr=5.02e-04
+  epoch 05/60 | train_loss=0.3367 val_loss=1.7350 val_macroF1=0.3297 lr=6.69e-04
+  epoch 06/60 | train_loss=0.3130 val_loss=1.7023 val_macroF1=0.4725 lr=8.36e-04
+  epoch 07/60 | train_loss=0.3151 val_loss=1.6199 val_macroF1=0.3867 lr=1.00e-03
+  epoch 08/60 | train_loss=0.3251 val_loss=1.6529 val_macroF1=0.3972 lr=9.99e-04
+  epoch 09/60 | train_loss=0.2920 val_loss=1.5992 val_macroF1=0.4169 lr=9.97e-04
+  epoch 10/60 | train_loss=0.2837 val_loss=1.4976 val_macroF1=0.3868 lr=9.92e-04
+  epoch 11/60 | train_loss=0.2748 val_loss=1.4039 val_macroF1=0.4518 lr=9.87e-04
+  epoch 12/60 | train_loss=0.2815 val_loss=1.5765 val_macroF1=0.4173 lr=9.79e-04
+  epoch 13/60 | train_loss=0.2881 val_loss=1.6046 val_macroF1=0.4320 lr=9.70e-04
+  epoch 14/60 | train_loss=0.2812 val_loss=1.5143 val_macroF1=0.4525 lr=9.59e-04
+  epoch 15/60 | train_loss=0.2720 val_loss=1.5121 val_macroF1=0.3979 lr=9.47e-04
+  early stop at epoch 15 (best epoch 3)
+[train] temperature=2.824  ECE 0.2304 -> 0.0757
+[train] saved checkpoint -> /mnt/c/Users/DELL/threatwatch/models/cnn.pt
+[train] test macro-F1=0.3164 acc=0.3158 latency=0.41 ms
+
+=== cnn (test) ===
+accuracy : 0.3158
+macro-F1 : 0.3164
+weight-F1: 0.3668
+    baseline: P=1.000 R=0.316 F1=0.480 n=703
+      stress: P=0.397 R=0.187 F1=0.254 n=412
+   amusement: P=0.133 R=0.560 F1=0.215 n=218
+
+[train] cnn_transformer: batch_size=64
+[train] model=cnn_transformer params=145,859 device=cpu train=4354 val=880 test=1333 window=480x7 bs=64
+  epoch 01/60 | train_loss=0.8579 val_loss=1.0256 val_macroF1=0.4248 lr=2.42e-06 *
+  epoch 02/60 | train_loss=0.4779 val_loss=1.2013 val_macroF1=0.5310 lr=1.69e-04 *
+  epoch 03/60 | train_loss=0.4006 val_loss=1.2282 val_macroF1=0.4912 lr=3.36e-04
+  epoch 04/60 | train_loss=0.3691 val_loss=1.0503 val_macroF1=0.5224 lr=5.02e-04
+  epoch 05/60 | train_loss=0.3431 val_loss=1.2069 val_macroF1=0.4844 lr=6.69e-04
+  epoch 06/60 | train_loss=0.3230 val_loss=1.3160 val_macroF1=0.5190 lr=8.36e-04
+  epoch 07/60 | train_loss=0.3288 val_loss=1.1716 val_macroF1=0.4938 lr=1.00e-03
+  epoch 08/60 | train_loss=0.3103 val_loss=1.3369 val_macroF1=0.4809 lr=9.99e-04
+  epoch 09/60 | train_loss=0.3171 val_loss=1.3093 val_macroF1=0.4825 lr=9.97e-04
+  epoch 10/60 | train_loss=0.2868 val_loss=1.3297 val_macroF1=0.4815 lr=9.92e-04
+  epoch 11/60 | train_loss=0.2878 val_loss=1.3581 val_macroF1=0.4456 lr=9.87e-04
+  epoch 12/60 | train_loss=0.2900 val_loss=1.3088 val_macroF1=0.5033 lr=9.79e-04
+  epoch 13/60 | train_loss=0.2930 val_loss=1.7961 val_macroF1=0.4017 lr=9.70e-04
+  epoch 14/60 | train_loss=0.2620 val_loss=1.8829 val_macroF1=0.3766 lr=9.59e-04
+  early stop at epoch 14 (best epoch 2)
+[train] temperature=1.583  ECE 0.1456 -> 0.0948
+[train] saved checkpoint -> /mnt/c/Users/DELL/threatwatch/models/cnn_transformer.pt
+[train] test macro-F1=0.3580 acc=0.3623 latency=0.93 ms
+
+=== cnn_transformer (test) ===
+accuracy : 0.3623
+macro-F1 : 0.3580
+weight-F1: 0.4212
+    baseline: P=0.950 R=0.326 F1=0.485 n=703
+      stress: P=0.454 R=0.498 F1=0.475 n=412
+   amusement: P=0.077 R=0.225 F1=0.114 n=218
+
+[train] patch_vit: batch_size=32
+[train] model=patch_vit params=181,507 device=cpu train=4354 val=880 test=1333 window=480x7 bs=32
+  epoch 01/60 | train_loss=0.8259 val_loss=1.2505 val_macroF1=0.3878 lr=1.22e-06 *
+  epoch 02/60 | train_loss=0.4663 val_loss=1.5177 val_macroF1=0.4329 lr=1.68e-04 *
+  epoch 03/60 | train_loss=0.3578 val_loss=1.4074 val_macroF1=0.4908 lr=3.35e-04 *
+  epoch 04/60 | train_loss=0.3414 val_loss=1.5703 val_macroF1=0.4543 lr=5.01e-04
+  epoch 05/60 | train_loss=0.3071 val_loss=1.5442 val_macroF1=0.3705 lr=6.68e-04
+  epoch 06/60 | train_loss=0.2958 val_loss=1.6191 val_macroF1=0.4202 lr=8.35e-04
+  epoch 07/60 | train_loss=0.2864 val_loss=1.4451 val_macroF1=0.4923 lr=1.00e-03 *
+  epoch 08/60 | train_loss=0.2642 val_loss=1.4266 val_macroF1=0.4581 lr=9.99e-04
+  epoch 09/60 | train_loss=0.2444 val_loss=1.4937 val_macroF1=0.4287 lr=9.97e-04
+  epoch 10/60 | train_loss=0.2574 val_loss=1.6459 val_macroF1=0.4651 lr=9.92e-04
+  epoch 11/60 | train_loss=0.2582 val_loss=1.4885 val_macroF1=0.4713 lr=9.87e-04
+  epoch 12/60 | train_loss=0.2591 val_loss=1.6844 val_macroF1=0.4071 lr=9.79e-04
+  epoch 13/60 | train_loss=0.2401 val_loss=1.4667 val_macroF1=0.4656 lr=9.70e-04
+  epoch 14/60 | train_loss=0.2426 val_loss=1.4349 val_macroF1=0.4532 lr=9.59e-04
+  epoch 15/60 | train_loss=0.2319 val_loss=1.5452 val_macroF1=0.4230 lr=9.47e-04
+  epoch 16/60 | train_loss=0.2254 val_loss=1.7363 val_macroF1=0.4076 lr=9.33e-04
+  epoch 17/60 | train_loss=0.2256 val_loss=1.8292 val_macroF1=0.4087 lr=9.18e-04
+  epoch 18/60 | train_loss=0.2326 val_loss=1.9514 val_macroF1=0.4242 lr=9.01e-04
+  epoch 19/60 | train_loss=0.2434 val_loss=1.7651 val_macroF1=0.4069 lr=8.83e-04
+  early stop at epoch 19 (best epoch 7)
+[train] temperature=2.256  ECE 0.2224 -> 0.0939
+[train] saved checkpoint -> /mnt/c/Users/DELL/threatwatch/models/patch_vit.pt
+[train] test macro-F1=0.3301 acc=0.3323 latency=0.43 ms
+
+=== patch_vit (test) ===
+accuracy : 0.3323
+macro-F1 : 0.3301
+weight-F1: 0.3670
+    baseline: P=0.881 R=0.304 F1=0.452 n=703
+      stress: P=0.435 R=0.204 F1=0.278 n=412
+   amusement: P=0.162 R=0.665 F1=0.260 n=218
+
+[train] bilstm: batch_size=64
+[train] model=bilstm params=174,994 device=cpu train=4354 val=880 test=1333 window=480x7 bs=64
+  epoch 01/60 | train_loss=1.1044 val_loss=1.1088 val_macroF1=0.2474 lr=2.42e-06 *
+  epoch 02/60 | train_loss=0.8447 val_loss=1.7054 val_macroF1=0.3995 lr=1.69e-04 *
+  epoch 03/60 | train_loss=0.4194 val_loss=1.7666 val_macroF1=0.4033 lr=3.36e-04 *
+  epoch 04/60 | train_loss=0.3645 val_loss=1.7365 val_macroF1=0.3769 lr=5.02e-04
+  epoch 05/60 | train_loss=0.3421 val_loss=1.9115 val_macroF1=0.3473 lr=6.69e-04
+  epoch 06/60 | train_loss=0.3035 val_loss=1.7224 val_macroF1=0.3957 lr=8.36e-04
+  epoch 07/60 | train_loss=0.3073 val_loss=1.6774 val_macroF1=0.4214 lr=1.00e-03 *
+  epoch 08/60 | train_loss=0.2876 val_loss=1.6744 val_macroF1=0.3889 lr=9.99e-04
+  epoch 09/60 | train_loss=0.2583 val_loss=1.5899 val_macroF1=0.3821 lr=9.97e-04
+  epoch 10/60 | train_loss=0.2480 val_loss=1.6142 val_macroF1=0.3836 lr=9.92e-04
+  epoch 11/60 | train_loss=0.2527 val_loss=1.6979 val_macroF1=0.3261 lr=9.87e-04
+  epoch 12/60 | train_loss=0.2429 val_loss=1.9412 val_macroF1=0.3120 lr=9.79e-04
+  epoch 13/60 | train_loss=0.2452 val_loss=1.9212 val_macroF1=0.3239 lr=9.70e-04
+  epoch 14/60 | train_loss=0.2516 val_loss=1.6900 val_macroF1=0.3671 lr=9.59e-04
+  epoch 15/60 | train_loss=0.2494 val_loss=1.8395 val_macroF1=0.3682 lr=9.47e-04

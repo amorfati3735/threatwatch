@@ -1,0 +1,45 @@
+[train] dataset: data/processed/w15_s5_fs32.npz
+[train] channels : ['hr', 'eda', 'temp', 'acc_x', 'acc_y', 'acc_z', 'acc_mag']
+[train] window   : {'window_sec': 15.0, 'stride_sec': 5.0, 'target_fs': 32.0}
+[train] task: 3-class
+[train] shapes train=(4354, 480, 7) val=(880, 480, 7) test=(1333, 480, 7)
+[train] normalisation: per-window z-score (subject-agnostic)
+
+[train] cnn: batch_size=64
+[train] model=cnn params=49,347 device=cpu train=4354 val=880 test=1333 window=480x7 bs=64 augment=False normalize=window
+  epoch 01/40 | train_loss=1.0820 val_loss=1.0635 val_macroF1=0.4242 lr=3.62e-06 *
+  epoch 02/40 | train_loss=0.8962 val_loss=1.1638 val_macroF1=0.4700 lr=2.54e-04 *
+  epoch 03/40 | train_loss=0.6994 val_loss=1.0280 val_macroF1=0.5832 lr=5.04e-04 *
+  epoch 04/40 | train_loss=0.6061 val_loss=1.0167 val_macroF1=0.5554 lr=7.54e-04
+  epoch 05/40 | train_loss=0.5597 val_loss=1.4573 val_macroF1=0.4148 lr=1.00e-03
+  epoch 06/40 | train_loss=0.5196 val_loss=1.3031 val_macroF1=0.4467 lr=9.98e-04
+  epoch 07/40 | train_loss=0.4822 val_loss=1.2383 val_macroF1=0.5748 lr=9.92e-04
+  epoch 08/40 | train_loss=0.4714 val_loss=1.1853 val_macroF1=0.5452 lr=9.83e-04
+  epoch 09/40 | train_loss=0.4169 val_loss=1.0793 val_macroF1=0.5891 lr=9.70e-04 *
+  epoch 10/40 | train_loss=0.3993 val_loss=1.9226 val_macroF1=0.4090 lr=9.53e-04
+  epoch 11/40 | train_loss=0.3768 val_loss=1.2541 val_macroF1=0.4981 lr=9.33e-04
+  epoch 12/40 | train_loss=0.3667 val_loss=1.5028 val_macroF1=0.4994 lr=9.10e-04
+  epoch 13/40 | train_loss=0.3506 val_loss=1.4923 val_macroF1=0.5181 lr=8.83e-04
+  epoch 14/40 | train_loss=0.3483 val_loss=1.4119 val_macroF1=0.4963 lr=8.54e-04
+  epoch 15/40 | train_loss=0.3218 val_loss=1.4011 val_macroF1=0.4849 lr=8.21e-04
+  epoch 16/40 | train_loss=0.3188 val_loss=1.5598 val_macroF1=0.5003 lr=7.87e-04
+  epoch 17/40 | train_loss=0.3007 val_loss=1.3323 val_macroF1=0.5524 lr=7.50e-04
+  epoch 18/40 | train_loss=0.2955 val_loss=1.4069 val_macroF1=0.4737 lr=7.11e-04
+  epoch 19/40 | train_loss=0.2930 val_loss=2.4564 val_macroF1=0.3803 lr=6.71e-04
+  early stop at epoch 19 (best epoch 9)
+[train] temperature=1.758  ECE 0.0915 -> 0.0422
+[train] saved checkpoint -> /mnt/c/Users/DELL/threatwatch/models/cnn_wnorm_noaug.pt
+[train] test macro-F1=0.6123 acc=0.6579 latency=0.40 ms
+
+=== cnn_wnorm_noaug (test) ===
+accuracy : 0.6579
+macro-F1 : 0.6123
+weight-F1: 0.6770
+    baseline: P=0.838 R=0.669 F1=0.744 n=703
+      stress: P=0.721 R=0.735 F1=0.728 n=412
+   amusement: P=0.295 R=0.477 F1=0.365 n=218
+
+[train] wrote comparison -> /mnt/c/Users/DELL/threatwatch/results/comparison_wnorm_noaug.json
+
+[train] ==== leaderboard (test macro-F1) ====
+  cnn_wnorm_noaug                macroF1=0.6123  acc=0.6579
