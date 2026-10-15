@@ -13,7 +13,7 @@ from __future__ import annotations
 import asyncio
 import queue
 import threading
-from typing import Optional
+from typing import Callable, Optional, Tuple
 
 from threatwatch.data.sources.serial_source import parse_line
 from threatwatch.data.types import SensorPacket, SensorSource
@@ -25,13 +25,29 @@ DEVICE_NAME = "ThreatWatch"
 class BluetoothSensorSource(SensorSource):
     name = "ble"
 
-    def __init__(self, device_name: str = DEVICE_NAME, address: Optional[str] = None):
+    def __init__(
+        self,
+        device_name: str = DEVICE_NAME,
+        address: Optional[str] = None,
+        on_raw_line: Optional[Callable[[str, Optional[SensorPacket]], None]] = None,
+        on_state_change: Optional[Callable[[str], None]] = None,
+        auto_reconnect: bool = True,
+    ):
         self.device_name = device_name
         self.address = address
+        self.on_raw_line = on_raw_line
+        self.on_state_change = on_state_change
+        self.auto_reconnect = auto_reconnect
+
         self._q: "queue.Queue[SensorPacket]" = queue.Queue()
+        self._raw_q: "queue.Queue[Tuple[str, Optional[SensorPacket]]]" = queue.Queue()
         self._running = False
         self._thread: Optional[threading.Thread] = None
         self._loop: Optional[asyncio.AbstractEventLoop] = None
+
+        self.accepted_count = 0
+        self.rejected_count = 0
+        self.last_address: Optional[str] = None
 
     def start(self) -> None:
         self._running = True
@@ -55,11 +71,26 @@ class BluetoothSensorSource(SensorSource):
         except queue.Empty:
             return None
 
+    def get_next_record(self, timeout: float = 0.2) -> Optional[Tuple[str, Optional[SensorPacket]]]:
+        try:
+            return self._raw_q.get(timeout=timeout)
+        except queue.Empty:
+            return None
+
+    def _notify_state(self, msg: str) -> None:
+        if self.on_state_change is not None:
+            try:
+                self.on_state_change(msg)
+            except Exception:
+                pass
+        else:
+            print(f"[ble] {msg}")
+
     def _run(self) -> None:
         try:
             import bleak  # noqa: F401
         except ImportError:
-            print("[ble] 'bleak' not installed — run: pip install bleak")
+            self._notify_state("'bleak' not installed - run: pip install bleak")
             self._running = False
             return
 
@@ -67,35 +98,70 @@ class BluetoothSensorSource(SensorSource):
 
         async def main():
             self._loop = asyncio.get_running_loop()
-            print(f"[ble] scanning for '{self.device_name}' …")
-            device = None
-            if self.address:
-                device = await BleakScanner.find_device_by_address(self.address, timeout=10)
-            if device is None:
-                device = await BleakScanner.find_device_by_filter(
-                    lambda d, ad: (ad.local_name or "") == self.device_name, timeout=15
-                )
-            if device is None:
-                print("[ble] device not found")
-                self._running = False
-                return
 
             def on_notify(_sender, data: bytearray):
-                pkt = parse_line(data.decode("utf-8", errors="ignore"))
+                raw = data.decode("utf-8", errors="ignore").strip()
+                pkt = parse_line(raw)
                 if pkt is not None:
                     pkt.source = "ble"
+                    self.accepted_count += 1
                     self._q.put(pkt)
+                else:
+                    self.rejected_count += 1
+                self._raw_q.put((raw, pkt))
+                if self.on_raw_line is not None:
+                    try:
+                        self.on_raw_line(raw, pkt)
+                    except Exception:
+                        pass
 
-            async with BleakClient(device) as client:
-                print(f"[ble] connected to {device.address}")
-                await client.start_notify(NUS_TX_UUID, on_notify)
-                while self._running:
-                    await asyncio.sleep(0.2)
-                await client.stop_notify(NUS_TX_UUID)
+            while self._running:
+                self._notify_state(f"scanning for '{self.device_name}'...")
+                device = None
+                try:
+                    if self.address:
+                        device = await BleakScanner.find_device_by_address(self.address, timeout=10)
+                    if device is None:
+                        device = await BleakScanner.find_device_by_filter(
+                            lambda d, ad: (ad.local_name or "") == self.device_name, timeout=15
+                        )
+                except Exception as exc:
+                    self._notify_state(f"scan error: {exc}")
+
+                if device is None:
+                    if not self._running:
+                        break
+                    self._notify_state("device not found")
+                    if not self.auto_reconnect:
+                        break
+                    await asyncio.sleep(2.0)
+                    continue
+
+                self.last_address = device.address
+                self._notify_state(f"connected {device.address}")
+                try:
+                    async with BleakClient(device) as client:
+                        await client.start_notify(NUS_TX_UUID, on_notify)
+                        while self._running and client.is_connected:
+                            await asyncio.sleep(0.2)
+                        try:
+                            await client.stop_notify(NUS_TX_UUID)
+                        except Exception:
+                            pass
+                except Exception as e:
+                    if not self._running:
+                        break
+                    self._notify_state(f"connection error: {e}")
+
+                if self._running and self.auto_reconnect:
+                    self._notify_state("link lost - reconnecting")
+                    await asyncio.sleep(1.0)
+                else:
+                    break
             self._running = False
 
         try:
             asyncio.run(main())
-        except Exception as e:  # keep the UI alive on disconnect
-            print(f"[ble] connection error: {e}")
+        except Exception as e:
+            self._notify_state(f"connection error: {e}")
             self._running = False

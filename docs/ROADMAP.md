@@ -57,7 +57,7 @@ Legend: ✅ done & verified · 🟡 in progress · ⬜ not started · ❗ gap fo
 | 3 | One sensor contract (`SensorPacket`, `None` = not measured) shared by WESAD / serial / BLE / simulator / log-replay | ✅ |
 | 4 | Dead code removed: `scripts/replay.py` (superseded by `live.py --source replay`), unreferenced legacy `.npz` | ✅ |
 | 5 | `utils/logging.py` import side-effect removed; audit trail now persisted to `logs/events.jsonl` | ✅ |
-| 6 | **55 tests pass** (loader, sizing, serial loopback over a pty, replay engine, fusion, FSM, alerts, pipeline) | ✅ |
+| 6 | **68 tests pass** (loader, sizing, serial loopback over a pty, replay engine, fusion, FSM, alerts, timeline & feedback, pipeline) | ✅ |
 | 7 | `scripts/benchmark_models.py` ported & run — real feasibility numbers in `results/benchmark.json` | ✅ |
 | 8 | `README.md` still describes the *old* `fittrack/` project | ❗⬜ |
 

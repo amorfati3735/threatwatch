@@ -11,6 +11,7 @@ from threatwatch.alerts.manager import (
     build_dispatcher,
     build_notifiers,
 )
+from threatwatch.alerts.ntfy import NtfyNotifier
 from threatwatch.alerts.telegram import TelegramNotifier
 
 __all__ = [
@@ -19,6 +20,7 @@ __all__ = [
     "ConsoleNotifier",
     "Notifier",
     "NullNotifier",
+    "NtfyNotifier",
     "TelegramNotifier",
     "build_dispatcher",
     "build_notifiers",

@@ -17,7 +17,7 @@ result artefacts** — not to redesign anything.
 
 Already done — do **not** redo: per-window normalisation sweep, wnorm model
 comparisons (`results/comparison_wnorm.json` — CNN best at 0.6129 macro-F1), the
-edge32 ablation, and the edge-export parity harness (58/58 tests pass).
+edge32 ablation, and the edge-export parity harness (68/68 tests pass).
 
 Still open (the remaining work):
 

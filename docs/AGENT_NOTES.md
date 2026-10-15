@@ -22,7 +22,7 @@ as "ThreatWatch"); the laptop runs `scripts/live.py --source serial --port /dev/
 |---|---|---|
 | COM ports | ❌ never | ✅ pyserial |
 | Bluetooth | ❌ no radio | ✅ bleak (WinRT) |
-| ThreatWatch venv | ✅ `/home/pratik/.venvs/threatwatch` (58/58 tests) | — |
+| ThreatWatch venv | ✅ `/home/pratik/.venvs/threatwatch` (68/68 tests) | — |
 | pyserial / bleak | — | ✅ `C:\Users\DELL\AppData\Local\Programs\Python\Python310` |
 | arduino-cli | via interop: `…\Arduino IDE\resources\app\backend\resources\arduino-cli.exe` (full path in README §Hardware; needs `ARDUINO_DIRECTORIES_DATA/USER` env) | |
 

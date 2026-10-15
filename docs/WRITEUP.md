@@ -810,7 +810,7 @@ bash   scripts/experiments.sh kfold      # §10.4
 python scripts/plot_results.py           # figures + model_comparison.md
 python scripts/export_onnx.py --all      # ONNX, verified against PyTorch
 python scripts/export_edge.py            # int8 C header + size report
-python -m pytest tests -q                # 55 tests, no hardware needed
+python -m pytest tests -q                # 68 tests, no hardware needed
 ```
 
 ## References

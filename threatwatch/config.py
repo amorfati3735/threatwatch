@@ -190,7 +190,7 @@ SUPPRESS_SENSOR_CAP = 0.50
 SUPPRESS_VISION_MIN = 0.60
 SUPPRESS_SENSOR_MAX = 0.30
 
-ROLLING_WINDOW_SIZE = 5       # inference samples averaged before the FSM sees a score
+ROLLING_WINDOW_SIZE = int(os.getenv("ROLLING_WINDOW_SIZE", "15"))  # inference samples averaged before the FSM sees a score (~0.75s smoothing)
 
 
 # --------------------------------------------------------------------------- #
@@ -211,6 +211,9 @@ class AlertSettings:
     channel: str = os.getenv("ALERT_CHANNEL", "telegram")  # telegram | console
     telegram_bot_token: str = os.getenv("TELEGRAM_BOT_TOKEN", "")
     telegram_chat_id: str = os.getenv("TELEGRAM_CHAT_ID", "")
+    ntfy_topic: str = os.getenv("NTFY_TOPIC", "")
+    ntfy_server: str = os.getenv("NTFY_SERVER", "https://ntfy.sh")
+    ntfy_token: str = os.getenv("NTFY_TOKEN", "")
     cooldown_secs: float = float(os.getenv("ALERT_COOLDOWN_SECS", str(ALERT_COOLDOWN_SECS)))
     timeout_secs: float = float(os.getenv("ALERT_TIMEOUT_SECS", "8"))
     max_retries: int = int(os.getenv("ALERT_MAX_RETRIES", "2"))
@@ -219,6 +222,10 @@ class AlertSettings:
     @property
     def telegram_ready(self) -> bool:
         return bool(self.telegram_bot_token and self.telegram_chat_id)
+
+    @property
+    def ntfy_ready(self) -> bool:
+        return bool(self.ntfy_topic)
 
 
 # --------------------------------------------------------------------------- #

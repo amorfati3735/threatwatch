@@ -64,10 +64,10 @@
     <!-- Modality Source Selection Tabs -->
     <div class="replay-only flex items-center gap-1 bg-uni-panel p-1 border border-uni-border rounded">
       <button id="btnSourceWesad" class="btn-uni btn-neon text-xs py-1 px-3">
-        ⚡ WESAD Replay
+        WESAD Replay
       </button>
       <button id="btnSourceArduino" class="btn-uni btn-dark text-xs py-1 px-3">
-        🔌 Arduino Live
+        ESP32 Live
       </button>
     </div>
 
@@ -84,17 +84,42 @@
 
     <!-- System Controls -->
     <div class="flex items-center gap-2">
-      <span id="wsStatusBadge" class="badge-uni badge-neon">● Live</span>
+      <span id="wsStatusBadge" class="badge-uni badge-neon">Live</span>
       <span id="streamFps" class="badge-uni text-uni-muted">30 FPS</span>
       <button id="muteBtn" class="btn-uni btn-dark text-xs py-1 px-2.5">
-        🔊 Alarm On
+        AUDIO ON
       </button>
       <button id="themeToggleBtn" class="btn-uni btn-dark text-xs py-1 px-2.5">
-        ☀️ Light
+        LIGHT
       </button>
       <button id="reviewModeBtn" class="btn-uni btn-dark text-xs py-1 px-2.5 border border-uni-border hover:border-uni-neon" title="Hide all WESAD replay controls — show only the live wearable">
-        🎓 Review Mode
+        Review Mode
       </button>
+
+      <!-- Panel Visibility Dropdown Menu -->
+      <div class="relative" id="panelDropdownWrap">
+        <button id="btnPanelToggle" type="button" class="btn-uni btn-dark text-xs py-1 px-2.5 border border-uni-border hover:border-uni-neon flex items-center gap-1.5" title="Toggle visible panels on the dashboard">
+          <span>Panels</span>
+          <span class="text-[10px] text-uni-muted font-mono" id="panelDropdownArrow">[v]</span>
+        </button>
+
+        <div id="panelDropdownMenu" class="hidden absolute right-0 mt-1 w-64 bg-uni-dark border-2 border-uni-border shadow-hard-neon z-50 p-3 space-y-2 text-xs font-mono">
+          <div class="flex items-center justify-between border-b border-uni-border pb-1.5">
+            <span class="font-bold text-uni-contrast uppercase text-[11px]">Dashboard Panels</span>
+            <div class="flex items-center gap-1.5 text-[10px]">
+              <button id="btnShowAllPanels" type="button" class="text-uni-neon hover:underline cursor-pointer">All</button>
+              <span class="text-uni-muted">|</span>
+              <button id="btnHideAllPanels" type="button" class="text-uni-alert hover:underline cursor-pointer">None</button>
+              <span class="text-uni-muted">|</span>
+              <button id="btnResetPanels" type="button" class="text-uni-cyan hover:underline cursor-pointer">Reset</button>
+            </div>
+          </div>
+
+          <div class="space-y-1 max-h-72 overflow-y-auto pr-1" id="panelCheckboxesList">
+            <!-- Dynamically populated by initPanelDropdown() -->
+          </div>
+        </div>
+      </div>
     </div>
   </header>
 
@@ -102,10 +127,10 @@
   <main class="relative z-10 max-w-7xl mx-auto p-4 md:p-6 space-y-5">
 
     <!-- ROW 1: LIVE WEBCAM & WEARABLE SIGNALS -->
-    <div class="grid grid-cols-1 lg:grid-cols-12 gap-5">
+    <div id="row1Container" class="grid grid-cols-1 lg:grid-cols-12 gap-5">
       
       <!-- Live Camera Feed (7 Cols) -->
-      <div class="lg:col-span-7 uni-card p-4 flex flex-col justify-between">
+      <div id="panelCameraFeed" class="lg:col-span-7 uni-card p-4 flex flex-col justify-between">
         <div class="corner-accent"></div>
         <div class="flex items-center justify-between mb-3 border-b border-uni-border pb-2">
           <div class="flex items-center gap-2">
@@ -143,7 +168,7 @@
       </div>
 
       <!-- Wearable Sensor Signals (5 Cols) -->
-      <div class="lg:col-span-5 uni-card p-4 flex flex-col justify-between">
+      <div id="panelWearableSensors" class="lg:col-span-5 uni-card p-4 flex flex-col justify-between">
         <div class="corner-accent"></div>
         <div class="flex items-center justify-between mb-3 border-b border-uni-border pb-2">
           <div class="flex items-center gap-2">
@@ -170,7 +195,7 @@
             <div id="valSlot3" class="text-sm font-display font-bold text-uni-neon mt-1">--</div>
           </div>
           <div class="bg-uni-dark p-2.5 border border-uni-border">
-            <div id="lblSlot4" class="text-[10px] text-uni-muted uppercase">Skin Temp</div>
+            <div id="lblSlot4" class="text-[10px] text-uni-muted uppercase">Skin Temp (WESAD)</div>
             <div id="valSlot4" class="text-sm font-display font-bold text-uni-contrast mt-1">-- °C</div>
           </div>
           <div class="bg-uni-dark p-2.5 border border-uni-border">
@@ -211,10 +236,10 @@
     </div>
 
     <!-- ROW 2: ML MODEL PROBABILITIES -->
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+    <div id="row2Container" class="grid grid-cols-1 md:grid-cols-2 gap-5">
       
       <!-- Sensor Inference Model -->
-      <div class="uni-card p-4">
+      <div id="panelSensorML" class="uni-card p-4">
         <div class="corner-accent"></div>
         <div class="flex items-center justify-between mb-3 border-b border-uni-border pb-2">
           <h3 id="modelCardTitle" class="text-xs font-display font-semibold uppercase text-uni-contrast">
@@ -257,7 +282,7 @@
       </div>
 
       <!-- Vision Model -->
-      <div class="uni-card p-4">
+      <div id="panelVisionML" class="uni-card p-4">
         <div class="corner-accent"></div>
         <div class="flex items-center justify-between mb-3 border-b border-uni-border pb-2">
           <h3 class="text-xs font-display font-semibold uppercase text-uni-contrast">
@@ -292,7 +317,7 @@
     </div>
 
     <!-- ROW 3: MULTIMODAL FUSION & THREAT LEVEL GAUGE -->
-    <div class="uni-card p-5 border-2 border-uni-border shadow-hard-neon">
+    <div id="panelThreatDecision" class="uni-card p-5 border-2 border-uni-border shadow-hard-neon">
       <div class="corner-accent"></div>
       
       <div class="flex flex-wrap items-center justify-between gap-4 mb-4">
@@ -302,14 +327,21 @@
           </h2>
           <p class="text-xs text-uni-muted">Combines physiological signals and visual cues into an auditable safety verdict</p>
         </div>
-        <div class="flex items-center gap-3">
+        <div class="flex flex-wrap items-center gap-2">
           <span id="fusionConsensus" class="badge-uni badge-cyan text-xs">Normal / Congruent</span>
           <div id="stateBadge" class="btn-uni btn-neon text-sm px-4 py-2 font-display">
             SAFE
           </div>
+          <button id="btnSimulateThreat" class="btn-uni btn-alert text-xs py-2 px-3 font-display">
+            Simulate Threat
+          </button>
           <button id="btnAlertReset" class="btn-uni btn-dark text-xs py-2 px-3 border border-uni-border hover:border-uni-alert">
             Reset Alarm
           </button>
+          <button id="btnTestTelegram" class="btn-uni btn-dark text-xs py-2 px-3 border border-uni-border hover:border-uni-cyan">
+            Test Telegram
+          </button>
+          <span id="threatFeedback" class="text-[11px] font-mono text-uni-muted"></span>
         </div>
       </div>
 
@@ -368,10 +400,10 @@
     </div>
 
     <!-- ROW 4: DEMO SCENARIOS & REPLAY CONTROLS -->
-    <div class="grid grid-cols-1 lg:grid-cols-12 gap-5">
+    <div id="row4Container" class="grid grid-cols-1 lg:grid-cols-12 gap-5">
       
       <!-- Evaluation Scenarios (6 Cols) -->
-      <div class="lg:col-span-6 uni-card p-4">
+      <div id="panelDemoScenarios" class="lg:col-span-6 uni-card p-4">
         <div class="corner-accent"></div>
         <div class="flex items-center justify-between mb-3 border-b border-uni-border pb-2">
           <h3 class="text-xs font-display font-semibold uppercase text-uni-contrast">
@@ -383,17 +415,17 @@
         <div class="grid grid-cols-2 gap-2">
           <button data-scenario="NORMAL" class="btn-uni btn-dark border border-uni-border hover:border-uni-neon text-left p-2.5 flex flex-col items-start">
             <span class="font-bold text-uni-contrast text-xs">1. Normal Baseline</span>
-            <span class="text-[10px] text-uni-muted mt-0.5">Calm sensors + calm camera → Safe</span>
+            <span class="text-[10px] text-uni-muted mt-0.5">Calm sensors + calm camera -> Safe</span>
           </button>
 
           <button data-scenario="PHYSIOLOGICAL_DISTRESS" class="btn-uni btn-dark border border-uni-border hover:border-uni-cyan text-left p-2.5 flex flex-col items-start">
             <span class="font-bold text-uni-contrast text-xs">2. High Heart Rate Only</span>
-            <span class="text-[10px] text-uni-muted mt-0.5">High stress + calm camera → Caution (50%)</span>
+            <span class="text-[10px] text-uni-muted mt-0.5">High stress + calm camera -> Caution (50%)</span>
           </button>
 
           <button data-scenario="MULTIMODAL_THREAT" class="btn-uni btn-dark border border-uni-border hover:border-uni-alert text-left p-2.5 flex flex-col items-start">
             <span class="font-bold text-uni-alert text-xs">3. Multimodal Threat</span>
-            <span class="text-[10px] text-uni-muted mt-0.5">High stress + pose anomaly → Threat (92%)</span>
+            <span class="text-[10px] text-uni-muted mt-0.5">High stress + pose anomaly -> Threat (92%)</span>
           </button>
 
           <button data-scenario="FALSE_POSITIVE_REDUCTION" class="btn-uni btn-dark border border-uni-border hover:border-uni-neon text-left p-2.5 flex flex-col items-start">
@@ -404,13 +436,13 @@
 
         <div class="mt-2 text-center">
           <button data-scenario="LIVE_FREE" class="btn-uni btn-neon w-full py-1.5 text-xs">
-            ⚡ Resume Live Free Stream
+            Resume Live Free Stream
           </button>
         </div>
       </div>
 
       <!-- Sensor Replay Deck (6 Cols) -->
-      <div class="replay-only lg:col-span-6 uni-card p-4 flex flex-col justify-between">
+      <div id="panelReplayDeck" class="replay-only lg:col-span-6 uni-card p-4 flex flex-col justify-between">
         <div class="corner-accent"></div>
         <div class="flex items-center justify-between mb-3 border-b border-uni-border pb-2">
           <h3 class="text-xs font-display font-semibold uppercase text-uni-contrast">
@@ -456,9 +488,9 @@
         <!-- Control Buttons & Speeds -->
         <div class="flex flex-wrap items-center justify-between gap-2">
           <div class="flex items-center gap-1.5">
-            <button id="btnPlay" class="btn-uni btn-neon text-xs py-1 px-3">▶ Play</button>
-            <button id="btnPause" class="btn-uni btn-dark text-xs py-1 px-3">⏸ Pause</button>
-            <button id="btnReset" class="btn-uni btn-dark text-xs py-1 px-3">↺ Restart</button>
+            <button id="btnPlay" class="btn-uni btn-neon text-xs py-1 px-3">Play</button>
+            <button id="btnPause" class="btn-uni btn-dark text-xs py-1 px-3">Pause</button>
+            <button id="btnReset" class="btn-uni btn-dark text-xs py-1 px-3">Restart</button>
           </div>
 
           <!-- Speeds -->
@@ -471,8 +503,74 @@
       </div>
     </div>
 
-    <!-- ROW 5: EVENT AUDIT LOG -->
-    <div class="uni-card p-4">
+    <!-- ROW 5: SERIAL MONITOR / SENSOR TELEMETRY STREAM -->
+    <div id="panelSerialMonitor" class="uni-card p-4">
+      <div class="corner-accent"></div>
+      <div class="flex flex-wrap items-center justify-between mb-3 border-b border-uni-border pb-2 gap-2">
+        <div class="flex items-center gap-2">
+          <span class="w-2 h-2 rounded-full bg-uni-neon animate-pulse"></span>
+          <h3 class="text-xs font-display font-semibold uppercase text-uni-contrast">
+            Serial Monitor / Sensor Stream
+          </h3>
+          <span id="smSourceBadge" class="badge-uni badge-neon text-[10px]">Wearable Live</span>
+          <span id="smRateBadge" class="badge-uni text-uni-muted text-[10px]">20 Hz</span>
+        </div>
+        <div class="flex flex-wrap items-center gap-2">
+          <button id="btnSmFormat" class="btn-uni btn-dark text-[10px] py-1 px-2.5 border border-uni-border hover:border-uni-neon" title="Toggle Decoded vs Raw CSV format">
+            Format: Decoded
+          </button>
+          <button id="btnSmScroll" class="btn-uni btn-neon text-[10px] py-1 px-2.5" title="Toggle Auto-Scroll">
+            Auto-Scroll: ON
+          </button>
+          <button id="btnSmCopy" class="btn-uni btn-dark text-[10px] py-1 px-2.5 border border-uni-border hover:border-uni-cyan" title="Copy monitor log to clipboard">
+            Copy
+          </button>
+          <button id="btnSmClear" class="btn-uni btn-dark text-[10px] py-1 px-2.5 border border-uni-border hover:border-uni-alert" title="Clear monitor output">
+            Clear
+          </button>
+        </div>
+      </div>
+
+      <!-- Quick Metrics Inspector Bar -->
+      <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-2 mb-3 text-xs font-mono">
+        <div class="bg-uni-dark p-2 border border-uni-border/60">
+          <span class="text-[9px] text-uni-muted block">PULSE / HR</span>
+          <span id="smValHR" class="font-bold text-uni-neon">-- BPM</span>
+        </div>
+        <div class="bg-uni-dark p-2 border border-uni-border/60">
+          <span id="smLblTemp" class="text-[9px] text-uni-muted block">IMU DIE TEMP</span>
+          <span id="smValTemp" class="font-bold text-uni-contrast">-- °C</span>
+        </div>
+        <div class="bg-uni-dark p-2 border border-uni-border/60">
+          <span class="text-[9px] text-uni-muted block">ACCELEROMETER</span>
+          <span id="smValAcc" class="font-bold text-uni-cyan truncate">--</span>
+        </div>
+        <div class="bg-uni-dark p-2 border border-uni-border/60">
+          <span class="text-[9px] text-uni-muted block">GYROSCOPE</span>
+          <span id="smValGyro" class="font-bold text-uni-contrast truncate">--</span>
+        </div>
+        <div class="bg-uni-dark p-2 border border-uni-border/60">
+          <span class="text-[9px] text-uni-muted block">FINGER CONTACT</span>
+          <span id="smValContact" class="font-bold text-uni-muted">--</span>
+        </div>
+        <div class="bg-uni-dark p-2 border border-uni-border/60">
+          <span class="text-[9px] text-uni-muted block">PACKET COUNT</span>
+          <span id="smValPackets" class="font-bold text-uni-contrast">0</span>
+        </div>
+      </div>
+
+      <!-- Raw Stream Console Output Window -->
+      <div id="smConsole" class="h-44 overflow-y-auto bg-uni-dark p-2.5 border border-uni-border font-mono text-[11px] leading-relaxed space-y-0.5 select-text">
+        <div class="text-uni-muted">Connecting to serial/sensor telemetry stream...</div>
+      </div>
+      <div class="flex justify-between items-center text-[10px] text-uni-muted mt-1.5 font-mono">
+        <span id="smColumnsLegend">Columns: TIME | HR | TEMP | ACC(X,Y,Z) | GYRO(X,Y,Z) | CONTACT | THREAT | STATE</span>
+        <span id="smLineCount">0 lines</span>
+      </div>
+    </div>
+
+    <!-- ROW 6: EVENT AUDIT LOG -->
+    <div id="panelEventLog" class="uni-card p-4">
       <div class="corner-accent"></div>
       <div class="flex items-center justify-between mb-3 border-b border-uni-border pb-2">
         <div class="flex items-center gap-2">

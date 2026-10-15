@@ -176,6 +176,10 @@ class PipelineRunner:
             event_logger.log_event("SOURCE", "Active sensor modality: WESAD REPLAY")
         else:
             return False
+        # Drop the previous source's last sample too: the dashboard must show
+        # "waiting for the board" (not a stale reading from another source) while
+        # a new link is coming up.
+        self._last_sensor = None
         self.buffer.clear()
         return True
 
@@ -202,6 +206,14 @@ class PipelineRunner:
 
     def reset_alert(self) -> None:
         self.state_machine.reset_state()
+        # Drop an active demo override as well, otherwise the injected threat
+        # score re-escalates the state machine on the very next tick and the
+        # alarm appears not to reset at all.  (The buffer is deliberately kept:
+        # the live window is still valid and clearing it would blind the model
+        # for the next 15 s.)
+        if self.demo_scenario != "LIVE_FREE":
+            self.demo_scenario = "LIVE_FREE"
+            self.fusion.reset()
         event_logger.log_event("ALERT", "Manual alert reset by operator.")
 
     def trigger_test_alert(self) -> bool:
@@ -222,8 +234,19 @@ class PipelineRunner:
     # Sensor + inference
     # ------------------------------------------------------------------ #
     def _sensor_distress(self) -> tuple[float, Optional[Any], Dict[str, Any]]:
-        if self.active_source == SOURCE_HARDWARE and self.hardware.is_connected:
-            pkt = self.hardware.get_next_sample()
+        if self.active_source == SOURCE_HARDWARE:
+            pkt = self.hardware.get_next_sample() if self.hardware.is_connected else None
+            if pkt is None:
+                # Deliberately does NOT fall through to the replay engine: replay
+                # packets are stamped in recording seconds, so feeding them into
+                # the live buffer would splice two time bases together (a scan
+                # for the board takes ~10-15 s, and the span raced to ~1.7e9).
+                pred = {
+                    "distress_score": 0.0, "distress_pct": 0.0, "probabilities": {},
+                    "predicted_label": "Waiting for board", "latency_ms": 0.0,
+                    "source": "HARDWARE (no samples yet)", "ready": False,
+                }
+                return 0.0, None, pred
             pred = self.hardware_ml.predict(pkt)
             return float(pred["distress_score"]), pkt, pred
 
@@ -300,8 +323,12 @@ class PipelineRunner:
 
                 # 6. mirror the verdict onto the wearable OLED
                 if self.active_source == SOURCE_HARDWARE and self.hardware.is_connected:
+                    # The OLED prints the first 10 characters of the state, so send
+                    # the leading verdict token ("THREAT") rather than the full
+                    # "THREAT / EMERGENCY", which rendered as "THREAT / E".
+                    device_state = str(fusion_result["verdict"]).split(" / ")[0]
                     self.hardware.write_feedback(
-                        int(fusion_result["threat_score_pct"]), str(fusion_result["verdict"])
+                        int(fusion_result["threat_score_pct"]), device_state
                     )
 
                 # 7. advance replay by exactly the simulated time this tick represents

@@ -23,6 +23,7 @@ from concurrent.futures import ThreadPoolExecutor
 from typing import Any, Callable, Dict, List, Optional, Sequence
 
 from threatwatch.alerts.base import AlertMessage, ConsoleNotifier, Notifier, NullNotifier
+from threatwatch.alerts.ntfy import NtfyNotifier
 from threatwatch.alerts.telegram import TelegramNotifier
 from threatwatch.config import AlertSettings, settings as load_settings
 
@@ -190,29 +191,53 @@ def build_notifiers(cfg: Optional[AlertSettings] = None) -> List[Notifier]:
     if not cfg.enabled:
         return [NullNotifier()]
 
-    channel = (cfg.channel or "console").strip().lower()
+    channels = [c.strip().lower() for c in (cfg.channel or "console").split(",") if c.strip()]
+    if not channels:
+        channels = ["console"]
 
-    if channel == "telegram":
-        if cfg.telegram_ready:
-            return [
-                TelegramNotifier(
-                    cfg.telegram_bot_token,
-                    cfg.telegram_chat_id,
-                    timeout_secs=cfg.timeout_secs,
-                    max_retries=cfg.max_retries,
+    notifiers: List[Notifier] = []
+
+    for channel in channels:
+        if channel == "telegram":
+            if cfg.telegram_ready:
+                notifiers.append(
+                    TelegramNotifier(
+                        cfg.telegram_bot_token,
+                        cfg.telegram_chat_id,
+                        timeout_secs=cfg.timeout_secs,
+                        max_retries=cfg.max_retries,
+                    )
                 )
-            ]
-        print(
-            "[alerts] ALERT_CHANNEL=telegram but TELEGRAM_BOT_TOKEN / "
-            "TELEGRAM_CHAT_ID are unset — falling back to console output."
-        )
-        return [ConsoleNotifier()]
+            else:
+                print(
+                    "[alerts] ALERT_CHANNEL has telegram but TELEGRAM_BOT_TOKEN / "
+                    "TELEGRAM_CHAT_ID are unset - falling back to console output."
+                )
+                notifiers.append(ConsoleNotifier())
 
-    if channel == "console":
-        return [ConsoleNotifier()]
+        elif channel == "ntfy":
+            if cfg.ntfy_ready:
+                notifiers.append(
+                    NtfyNotifier(
+                        topic=cfg.ntfy_topic,
+                        server=cfg.ntfy_server,
+                        token=cfg.ntfy_token,
+                        timeout_secs=cfg.timeout_secs,
+                        max_retries=cfg.max_retries,
+                    )
+                )
+            else:
+                print("[alerts] ALERT_CHANNEL has ntfy but NTFY_TOPIC is unset - falling back to console output.")
+                notifiers.append(ConsoleNotifier())
 
-    print(f"[alerts] unknown ALERT_CHANNEL={channel!r} — using console.")
-    return [ConsoleNotifier()]
+        elif channel == "console":
+            notifiers.append(ConsoleNotifier())
+
+        else:
+            print(f"[alerts] unknown ALERT_CHANNEL item {channel!r} - using console.")
+            notifiers.append(ConsoleNotifier())
+
+    return notifiers if notifiers else [ConsoleNotifier()]
 
 
 def build_dispatcher(

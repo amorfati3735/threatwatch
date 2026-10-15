@@ -141,11 +141,26 @@ void mpuRead(float &ax, float &ay, float &az, float &gx, float &gy, float &gz, f
 }
 
 long lastBeatMs = 0; float bpm = 0; bool haveBpm = false;
-void updateHeartRate() {
-  long ir = particleSensor.getIR();
-  if (ir < 50000) return;
-  if (checkForBeat(ir)) {
+unsigned long lastFingerMs = 0, beatCount = 0, lastDebugMs = 0;
+uint32_t lastIr = 0;
+
+// Raw IR above this means something reflective (a fingertip) is on the sensor.
+// Same threshold the SparkFun examples use.
+static const uint32_t IR_FINGER_THRESHOLD = 50000;
+
+// Feed the beat detector EVERY sample the MAX30102 produces (~25 Hz after the
+// 4-sample average).  The PBA algorithm (heartRate.h) is a DC estimator plus a
+// low-pass FIR that assumes a steady sample stream; the loop used to hand it one
+// sample per CSV record (~8 Hz, the OLED refresh blocks the loop), which
+// decimated the pulse waveform so far that a beat was never detected and the
+// panel sat on "-- BPM" with a finger on the sensor.
+void updateHeartRate(uint32_t ir) {
+  lastIr = ir;
+  if (ir < IR_FINGER_THRESHOLD) return;
+  lastFingerMs = millis();
+  if (checkForBeat((int32_t)ir)) {
     lastBeatFlashMs = millis();   // flash the on-screen heart
+    beatCount++;
     long now = millis(); long dt = now - lastBeatMs;
     if (lastBeatMs != 0 && dt > 300 && dt < 2000) {
       float inst = 60000.0f / (float)dt;
@@ -230,67 +245,62 @@ void oledSplash() {
   delay(1400);
 }
 
-void oledUpdate(unsigned long now, bool finger, uint32_t ir, float tempC) {
+// 128x64 text layout: header / BPM / ACC axes / contact / verdict.
+// The MPU6050 temperature is deliberately NOT shown: it is the IMU's own die
+// temperature (~43-44 C at idle), not skin temperature, so it reads the same
+// with or without a finger and only invites the wrong question.
+void oledUpdate(unsigned long now, bool finger, uint32_t ir, float ax, float ay, float az) {
   if (irBase == 0) irBase = (float)ir;
   irBase += ((float)ir - irBase) * 0.02f;
-  if (irHistN < 128) { irHist[irHistN++] = ir; }
-  else { memmove(irHist, irHist + 1, sizeof(uint32_t) * 127); irHist[127] = ir; }
 
   oled.clearDisplay();
-  oled.setTextSize(1);
 
   // header: title + link + activity spinner
+  oled.setTextSize(1);
   oled.setCursor(0, 0);
   oled.print("THREATWATCH");
+  oled.drawLine(0, 9, 127, 9, SSD1306_WHITE);
   oled.setCursor(84, 0);
   oled.print(bleConnected ? "BLE" : "USB");
   oled.setCursor(116, 0);
   oled.print(spinner[(now / 200) % 4]);
 
-  // pulsing heart on each detected beat
-  if ((now - lastBeatFlashMs) < 300) oled.drawBitmap(0, 12, HEART_BMP, 8, 6, SSD1306_WHITE);
-  else                               oled.drawRect(0, 12, 8, 6, SSD1306_WHITE);
-
-  // big BPM + temp + finger flag
-  char hrTxt[8], tmp[12];
-  if (finger && haveBpm) snprintf(hrTxt, sizeof(hrTxt), "%03d", (int)(bpm + 0.5f));
-  else                   strcpy(hrTxt, "---");
-  oled.setTextSize(3);
-  oled.setCursor(12, 10);
+  // big heart-rate line: the headline number
+  char hrTxt[8];
+  if (finger && haveBpm) snprintf(hrTxt, sizeof(hrTxt), "%d", (int)(bpm + 0.5f));
+  else                   strcpy(hrTxt, "--");
+  oled.setTextSize(2);
+  oled.setCursor(0, 11);
   oled.print(hrTxt);
-  oled.setTextSize(1);
-  oled.setCursor(70, 12);
-  oled.print("BPM");
-  snprintf(tmp, sizeof(tmp), "T:%.1f", tempC);
-  oled.setCursor(70, 24);
-  oled.print(tmp);
-  oled.setCursor(98, 24);
-  oled.print(finger ? "F:OK" : "F:--");
+  oled.print(" BPM");
 
-  // state line: laptop verdict wins, else local status
-  oled.setCursor(0, 36);
+  // accelerometer: the one sensor that always has something to say
+  oled.setTextSize(1);
+  oled.setCursor(0, 30);
+  char accTxt[24];
+  snprintf(accTxt, sizeof(accTxt), "ACC %.2f %.2f %.2f", ax, ay, az);
+  oled.print(accTxt);
+
+  // contact quality: the raw IR level is what the wearer adjusts, and it is
+  // what explains a missing BPM
+  oled.setCursor(0, 41);
+  char irTxt[24];
+  snprintf(irTxt, sizeof(irTxt), "IR %.0fk  %s", ir / 1000.0f, finger ? "FINGER OK" : "NO FINGER");
+  oled.print(irTxt);
+
+  // verdict: fused state + score from the laptop, on one line
+  oled.setCursor(0, 52);
   if (laptopState != "--") {
-    oled.print("ST:");
+    oled.print("STATE: ");
     oled.print(laptopState.substring(0, 8));
     oled.print(" ");
     oled.print(laptopScore);
+    oled.print("%");
   } else if (!finger) {
-    oled.print("PLACE FINGER!");
+    oled.print("PLACE FINGER ON SENSOR");
   } else {
-    oled.print("SENSING...");
+    oled.print("WAITING FOR LAPTOP");
   }
-
-  // scrolling PPG waveform
-  for (int i = 0; i < irHistN && i < 128; i++) {
-    float d = ((float)irHist[i] - irBase) / 250.0f;
-    if (d > 15) d = 15; if (d < -15) d = -15;
-    int y = 53 - (int)d;
-    if (y < 46) y = 46; if (y > 61) y = 61;
-    oled.drawPixel(i, y, SSD1306_WHITE);
-  }
-  oled.setCursor(0, 46);
-  oled.print("PPG");
-  oled.drawLine(0, 62, 127, 62, SSD1306_WHITE);
   oled.display();
 }
 
@@ -360,14 +370,22 @@ String buildLine(unsigned long now, bool finger, float ax, float ay, float az,
 
 void loop() {
   unsigned long now = millis();
+
+  // 1. Drain the PPG FIFO at the sensor's own pace and feed every sample to the
+  //    beat detector, so the CSV record rate (~10-20 Hz) no longer decimates
+  //    the pulse waveform.
+  particleSensor.check();
+  while (particleSensor.available() > 0) {
+    particleSensor.nextSample();
+    updateHeartRate(particleSensor.getFIFOIR());
+  }
+  bool finger = lastIr >= IR_FINGER_THRESHOLD;
+
   if (now - lastSample < SAMPLE_PERIOD_MS) return;
   lastSample = now;
 
-  updateHeartRate();
-
   float ax, ay, az, gx, gy, gz, tempC;
   mpuRead(ax, ay, az, gx, gy, gz, tempC);
-  bool finger = particleSensor.getIR() >= 50000;
   String line = buildLine(now, finger, ax, ay, az, gx, gy, gz, tempC);
 
   Serial.println(line);
@@ -376,8 +394,23 @@ void loop() {
     txChar->notify();
   }
 
+  // 2. One comment line every 2 s with the raw physiology behind the numbers.
+  //    Leading '#' means every consumer (dashboard, log replay, this file's
+  //    parser) ignores it, so the CSV contract is untouched.
+  if (now - lastDebugMs >= 2000) {
+    lastDebugMs = now;
+    char dbg[80];
+    snprintf(dbg, sizeof(dbg), "# ir=%lu bpm=%.1f beats=%lu finger=%d state=%s score=%d",
+             (unsigned long)lastIr, bpm, beatCount, finger ? 1 : 0, laptopState.c_str(), laptopScore);
+    Serial.println(dbg);
+    if (bleConnected && txChar) {
+      txChar->setValue((uint8_t *)dbg, strlen(dbg));
+      txChar->notify();
+    }
+  }
+
   if (oledOn && now - lastOledMs >= 100) {   // 10 Hz screen refresh
     lastOledMs = now;
-    oledUpdate(now, finger, particleSensor.getIR(), tempC);
+    oledUpdate(now, finger, lastIr, ax, ay, az);
   }
 }

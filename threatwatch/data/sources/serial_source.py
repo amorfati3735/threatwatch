@@ -12,6 +12,12 @@ WESAD replay and the recorded-log replay.
 
 Empty fields mean "sensor did not report this" and are kept as ``None`` — no
 value is invented.  A JSON-lines fallback is also accepted.
+
+A record must be *whole*.  A line that arrives short (a record split mid-
+transmission by a ``readline()`` timeout, or a stray value) has had its leading
+fields cut off, so every remaining value is shifted one channel to the left and
+the first field is a fragment of the real timestamp.  Such a line is rejected
+rather than turned into a sample that never existed.
 """
 
 from __future__ import annotations
@@ -28,6 +34,10 @@ from threatwatch.config import (
 from threatwatch.data.types import SensorPacket, SensorSource
 
 CSV_FIELDS = ["hr", "spo2", "eda", "temp", "ax", "ay", "az", "gx", "gy", "gz", "finger", "label"]
+
+# ts + every payload field.  A shorter line is a fragment of a record (see the
+# module docstring), never a valid sample.
+MIN_CSV_FIELDS = len(CSV_FIELDS) + 1
 
 
 def _num(s: str) -> Optional[float]:
@@ -69,7 +79,8 @@ def parse_line(line: str) -> Optional[SensorPacket]:
         )
 
     parts = line.split(",")
-    if len(parts) < 2:
+    if len(parts) < MIN_CSV_FIELDS:
+        # Truncated record: its fields are shifted, so it is not a sample.
         return None
     # If the line has a header-like token, skip it.
     if not parts[0].strip().replace(".", "", 1).lstrip("-").isdigit():

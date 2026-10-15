@@ -10,6 +10,9 @@ models/**/*.pth
 # evidence (metrics JSON + confusion PNGs) is intentionally versioned —
 # every number in the report traces back to results/*.json
 
+# Runtime secrets (.env holds the Telegram bot token / chat id)
+.env
+
 # Python
 __pycache__/
 *.py[cod]

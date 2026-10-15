@@ -38,7 +38,7 @@ windows:
 | Host C latency | 5.8 ms/window (x86; the ESP32 will be slower — not yet measured on board) |
 
 The suite also gates: arena fits the board budget, int8 really is >3.5x
-smaller, quantisation error stays <0.02. 58/58 tests pass.
+smaller, quantisation error stays <0.02. 68/68 tests pass.
 
 ## 3. What fits on the board (measured with `arduino-cli compile`, esp32:esp32 3.3.12)
 
@@ -72,7 +72,7 @@ unless the heap fix proves tight.
 PY=/home/pratik/.venvs/threatwatch/bin/python
 $PY scripts/export_edge.py --checkpoint models/cnn_wnorm.pt   # regenerate edge_model.h + results/edge_export.json
 $PY -m pytest tests/test_edge_parity.py -s   # parity + arena + size gates
-$PY -m pytest tests -q                    # full suite (58 tests)
+$PY -m pytest tests -q                    # full suite (68 tests)
 ```
 
 > The export/test tools pick the **newest** `cnn*.pt` when no checkpoint is

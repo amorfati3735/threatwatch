@@ -55,7 +55,7 @@ python3 -m venv /home/pratik/.venvs/threatwatch
 /home/pratik/.venvs/threatwatch/bin/pip install -r requirements.txt
 
 # 2. tests (no dataset needed, no hardware needed)
-/home/pratik/.venvs/threatwatch/bin/python -m pytest tests -q      # 55 passed
+/home/pratik/.venvs/threatwatch/bin/python -m pytest tests -q      # 68 passed
 
 # 3. the live dashboard
 python run.py                       # http://localhost:8000
@@ -128,7 +128,7 @@ threatwatch/           the package
 frontend/              live dashboard
 firmware/              esp32_wearable · esp32_edge_wearable · arduino_uno_wearable
 scripts/               download · preprocess · train · experiments · evaluate · live
-tests/                 55 tests, none of which need hardware or the dataset
+tests/                 68 tests, none of which need hardware or the dataset
 docs/                  see below
 ```
 

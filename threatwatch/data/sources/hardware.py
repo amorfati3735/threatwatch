@@ -14,6 +14,19 @@ stub, which between them (a) invented sensor values when a field was absent and
 Threading model: a daemon reader thread pulls lines and parks the newest packet
 in a lock-protected slot.  The async pipeline polls :meth:`get_next_sample` and
 therefore never blocks on the serial port.
+
+Timeline
+--------
+The device reports ``ts`` as **seconds since boot**, and ``millis()`` restarts on
+every board reset (a USB port open, a reflash, a power blip).  The reader rebases
+that onto the host clock so the single :class:`WindowBuffer` always sees a
+monotonic timeline.  Two rules keep that rebase honest:
+
+* the offset is re-anchored whenever the rebased clock stops tracking the host
+  clock (``TS_DRIFT_TOLERANCE_SEC``) — not only when the device clock jumps
+  *backwards*.  A single bad line (a record split by a ``readline()`` timeout, a
+  stale notification, a clock glitch) used to leave the whole session offset;
+* the timestamp handed to the buffer never goes backwards, whatever happens.
 """
 
 from __future__ import annotations
@@ -52,6 +65,21 @@ except Exception:  # pragma: no cover - bleak is an optional runtime dep
     BLE_AVAILABLE = False
 
 
+# The device clock and the host clock tick at the same rate (measured on the
+# ESP32: ts advances 1.000 s per wall-clock second).  A larger disagreement than
+# this means the *offset* is wrong, so it is re-anchored rather than trusted.
+TS_DRIFT_TOLERANCE_SEC = 5.0
+
+# A device clock that steps backwards by more than this has restarted: the board
+# rebooted, so ``millis()`` is back to zero.
+TS_RESET_EPSILON_SEC = 1.0
+
+# Minimum gap between two OLED refreshes that carry the same verdict.  A state
+# change is always sent immediately, so the panel still flips the instant the
+# alarm escalates.
+FEEDBACK_MIN_INTERVAL_SEC = 1.0
+
+
 class HardwareSensorSource(SensorSource):
     """Bidirectional USB-serial link to the physical wearable."""
 
@@ -76,6 +104,12 @@ class HardwareSensorSource(SensorSource):
         self._latest: Optional[SensorPacket] = None
         self._last_packet_time = 0.0
         self._packets_received = 0
+        self._partial_reads = 0
+        self._skip_next_line = False
+        self._feedback_errors = 0
+        self._feedback_pending = False
+        self._last_feedback_state: Optional[str] = None
+        self._last_feedback_at = 0.0
         self._connected = False
         self._error = ""
 
@@ -88,6 +122,7 @@ class HardwareSensorSource(SensorSource):
         # clock so the window buffer always sees a monotonic timeline.
         self._ts_base: Optional[float] = None
         self._ts_last: Optional[float] = None
+        self._ts_emitted: Optional[float] = None
 
     # -- discovery --------------------------------------------------------- #
     @staticmethod
@@ -177,6 +212,14 @@ class HardwareSensorSource(SensorSource):
             self._serial = None
             self._ble_client = None
             self._ble_loop = None
+            # A new session must not inherit the previous one's offset: the
+            # board has almost certainly just reset (the port open resets it).
+            self._skip_next_line = False
+            self._feedback_pending = False
+            self._last_feedback_state = None
+            self._ts_base = None
+            self._ts_last = None
+            self._ts_emitted = None
         if self._thread is not None and self._thread.is_alive():
             self._thread.join(timeout=1.0)
         self._thread = None
@@ -193,6 +236,13 @@ class HardwareSensorSource(SensorSource):
             self._latest = None
             self._last_packet_time = 0.0
             self._packets_received = 0
+            self._partial_reads = 0
+            self._skip_next_line = False
+            self._feedback_pending = False
+            self._last_feedback_state = None
+            self._ts_base = None
+            self._ts_last = None
+            self._ts_emitted = None
 
     @property
     def is_connected(self) -> bool:
@@ -223,6 +273,20 @@ class HardwareSensorSource(SensorSource):
                 raw = ser.readline().decode("utf-8", errors="ignore")
                 if not raw:
                     continue
+                if not raw.endswith("\n"):
+                    # readline() gave up mid-record (the sketch blocks for ~100 ms
+                    # in I2C refreshing the OLED, so records arrive in bursts).
+                    # The rest of that record is still in the driver buffer, so
+                    # the next read is its tail — a head-truncated line whose
+                    # first field is a *fragment* of the real timestamp.  Neither
+                    # half is a sample: drop this one and the next, then carry on.
+                    self._partial_reads += 1
+                    self._skip_next_line = True
+                    continue
+                if self._skip_next_line:
+                    self._skip_next_line = False
+                    self._partial_reads += 1
+                    continue
                 self._park_packet(raw)
             except Exception as exc:
                 # A transient serial error must not kill the thread permanently;
@@ -238,10 +302,30 @@ class HardwareSensorSource(SensorSource):
         if pkt is None:
             return
         now = time.time()
-        if self._ts_base is None or (self._ts_last is not None and pkt.timestamp < self._ts_last - 1.0):
-            self._ts_base = now - pkt.timestamp
-        self._ts_last = pkt.timestamp
-        pkt.timestamp = pkt.timestamp + (self._ts_base or 0.0)
+        dev_ts = pkt.timestamp
+
+        if self._ts_base is None:
+            self._ts_base = now - dev_ts
+        else:
+            rebased = dev_ts + self._ts_base
+            board_reset = self._ts_last is not None and dev_ts < self._ts_last - TS_RESET_EPSILON_SEC
+            if board_reset or abs(rebased - now) > TS_DRIFT_TOLERANCE_SEC:
+                # Re-anchor.  ``board_reset`` is millis() restarting; the drift
+                # check catches everything that leaves the offset wrong but
+                # *monotonic* (a fragment of a record, a stale or re-delivered
+                # notification).  Without it one bad line offsets the timeline
+                # for the rest of the session, and a later reset then walks it
+                # backwards, which is exactly the lock-up this fixes.
+                self._ts_base = now - dev_ts
+        self._ts_last = dev_ts
+
+        ts = dev_ts + self._ts_base
+        if self._ts_emitted is not None and ts < self._ts_emitted:
+            # The buffer must never see a backwards timestamp, whatever the
+            # device clock does.
+            ts = self._ts_emitted
+        self._ts_emitted = ts
+        pkt.timestamp = ts
         pkt.source = "hardware"
         with self._lock:
             self._latest = pkt
@@ -316,7 +400,16 @@ class HardwareSensorSource(SensorSource):
             return self._latest
 
     def write_feedback(self, threat_score_pct: int, state_str: str) -> bool:
-        """Mirror the fused verdict onto the wearable's OLED."""
+        """Mirror the fused verdict onto the wearable's OLED.
+
+        The panel is a display, not a data stream, so it is refreshed when the
+        *state* changes and otherwise at most once a second
+        (``FEEDBACK_MIN_INTERVAL_SEC``), and no second write is queued while one
+        is still on the wire.  Sending one write per telemetry tick (20/s) built
+        an unbounded backlog on the ESP32's BLE link and the panel froze on the
+        last state it had managed to receive — during the threat demo it kept
+        showing THREAT after the alert had been reset.
+        """
         with self._lock:
             ser = self._serial
             ble_client = self._ble_client
@@ -328,14 +421,31 @@ class HardwareSensorSource(SensorSource):
         try:
             pct = int(max(0, min(100, round(float(threat_score_pct)))))
             safe = str(state_str).replace("\n", " ").replace("\r", " ")[:24]
+
+            now = time.time()
+            with self._lock:
+                state_changed = safe != self._last_feedback_state
+                heartbeat_due = (now - self._last_feedback_at) >= FEEDBACK_MIN_INTERVAL_SEC
+                in_flight = self._feedback_pending
+                if not state_changed and not (heartbeat_due and not in_flight):
+                    return True  # this verdict is already on the panel
+                if in_flight:
+                    return False  # the link is behind; drop this update, keep the newest
+                self._last_feedback_state = safe
+                self._last_feedback_at = now
+
             payload = f"{DEVICE_STATE_PREFIX}{safe}\n{DEVICE_SCORE_PREFIX}{pct}\n".encode("utf-8")
             if transport == "ble":
                 if ble_client is None or ble_loop is None:
                     return False
-                # Fire-and-forget: a dropped link surfaces in the reader loop.
-                asyncio.run_coroutine_threadsafe(
+                self._feedback_pending = True
+                # Asynchronous so a slow link cannot stall the telemetry loop, but
+                # a failed write must still be visible: swallowing it made the
+                # OLED silently stop updating.
+                future = asyncio.run_coroutine_threadsafe(
                     ble_client.write_gatt_char(BLE_NUS_RX_UUID, payload), ble_loop
                 )
+                future.add_done_callback(self._note_feedback_result)
                 return True
             if ser is None:
                 return False
@@ -344,6 +454,19 @@ class HardwareSensorSource(SensorSource):
         except Exception as exc:
             print(f"[hardware] feedback write failed: {exc}")
             return False
+
+    def _note_feedback_result(self, future) -> None:
+        """Report the first few failed BLE feedback writes (never raises)."""
+        self._feedback_pending = False
+        try:
+            exc = future.exception()
+        except Exception:  # cancelled, or the loop went away
+            return
+        if exc is None:
+            return
+        self._feedback_errors += 1
+        if self._feedback_errors <= 3:
+            print(f"[hardware] OLED feedback write failed: {exc}")
 
     def get_state(self) -> Dict:
         with self._lock:
@@ -356,6 +479,8 @@ class HardwareSensorSource(SensorSource):
                 "port": self.port,
                 "baud": self.baud,
                 "packets_received": self._packets_received,
+                "partial_reads": self._partial_reads,
+                "feedback_errors": self._feedback_errors,
                 "last_packet_age_s": round(age, 2) if age is not None else None,
                 "is_stale": (age is None) or (age > self.stale_after_sec),
                 "error": self._error,

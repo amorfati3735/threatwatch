@@ -7,12 +7,16 @@ REM  Board connects from the website itself: Connect button.
 REM ============================================================
 title ThreatWatch review launcher
 
-REM Is the dashboard already up?
-curl -s -o nul -w "%%{http_code}" --max-time 2 http://localhost:8000/ | findstr "200" >nul
+REM Kill any zombie server left over inside WSL (it has no webcam/BLE/serial
+REM and would silently answer on port 8000 instead of this launch).
+wsl -- bash -lc "pkill -f threatwatch/run.py 2>/dev/null; pkill -f 'run.py' 2>/dev/null; true" >nul 2>&1
+
+REM Is the dashboard already up AND healthy?
+curl -s -o nul -w "%%{http_code}" --max-time 3 http://localhost:8000/api/status | findstr "200" >nul
 if %errorlevel%==0 goto already_up
 
-echo Starting ThreatWatch dashboard (new window)...
-start "ThreatWatch server" /min "C:\Users\DELL\AppData\Local\Programs\Python\Python310\python.exe" "C:\Users\DELL\threatwatch\run.py"
+echo Starting ThreatWatch dashboard (log window opening)...
+start "ThreatWatch Server Logs" cmd /k ""C:\Users\DELL\AppData\Local\Programs\Python\Python310\python.exe" -u "C:\Users\DELL\threatwatch\run.py""
 
 REM Give the model + camera time to load
 set /a tries=0
@@ -33,10 +37,15 @@ echo Dashboard already running.
 echo Opening dashboard...
 start "" http://localhost:8000/
 echo.
+echo ============================================================
+echo   DEMO SEQUENCE
 echo   1. Wear the rig, finger on the MAX30102, power bank on.
-echo   2. On the website: pick the COM port, click Connect.
+echo   2. On the website: pick the COM port (or BLE), click Connect.
 echo   3. Show live vitals, then press MULTIMODAL THREAT.
 echo   4. Reset alert when done (Alert Reset button).
-echo.
-echo This window can be closed; leave the server window running.
+echo
+echo   The "ThreatWatch Server Logs" window shows the live
+echo   pipeline log (model, fusion, alerts). Keep it open.
+echo ============================================================
+echo This window can be closed; keep the server window running.
 pause

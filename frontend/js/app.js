@@ -65,10 +65,23 @@ let activeSource = "WESAD_REPLAY";
 let arduinoConnected = false;
 let currentTheme = "dark";
 
+// Threat Score Smoothing & Hold State
+let displayedThreatPct = 0.0;
+let lastThreatTextUpdate = 0;
+let telemetryFrameCount = 0;
+
+// Serial Monitor State
+let smFormat = "decoded"; // "decoded" or "csv"
+let smAutoScroll = true;
+const smBuffer = [];
+const SM_MAX_LINES = 120;
+
 document.addEventListener("DOMContentLoaded", () => {
   initCharts();
   initTheme();
   initReviewMode();
+  initSerialMonitorControls();
+  initPanelDropdown();
   connectWebSocket();
   fetchSubjects();
   fetchArduinoPorts();
@@ -86,10 +99,11 @@ function initTheme() {
   document.documentElement.setAttribute("data-theme", currentTheme);
   const themeBtn = document.getElementById("themeToggleBtn");
   if (themeBtn) {
+    themeBtn.textContent = currentTheme === "dark" ? "LIGHT" : "DARK";
     themeBtn.addEventListener("click", () => {
       currentTheme = currentTheme === "dark" ? "light" : "dark";
       document.documentElement.setAttribute("data-theme", currentTheme);
-      themeBtn.innerHTML = currentTheme === "dark" ? "☀️ Light" : "🌙 Dark";
+      themeBtn.textContent = currentTheme === "dark" ? "LIGHT" : "DARK";
     });
   }
 }
@@ -99,7 +113,7 @@ function initReviewMode() {
   if (!btn) return;
   const apply = (on) => {
     document.body.classList.toggle("review-mode", on);
-    btn.innerHTML = on ? "🎓 Review Mode: ON" : "🎓 Review Mode";
+    btn.textContent = on ? "Review Mode: ON" : "Review Mode";
     btn.classList.toggle("btn-neon", on);
     try { localStorage.setItem("tw_review_mode", on ? "1" : "0"); } catch (e) { /* private mode */ }
   };
@@ -119,7 +133,7 @@ function connectWebSocket() {
 
   socket.onopen = () => {
     if (statusBadge) {
-      statusBadge.textContent = "● Live";
+      statusBadge.textContent = "Live";
       statusBadge.className = "badge-uni badge-neon";
     }
   };
@@ -137,7 +151,7 @@ function connectWebSocket() {
 
   socket.onclose = () => {
     if (statusBadge) {
-      statusBadge.textContent = "○ Disconnected";
+      statusBadge.textContent = "Disconnected";
       statusBadge.className = "badge-uni badge-alert";
     }
     setTimeout(connectWebSocket, 2000);
@@ -169,7 +183,7 @@ function updateDashboard(data) {
 
   if (ardBadge && btnConnect) {
     if (arduinoConnected) {
-      ardBadge.textContent = `Arduino: Connected (${ardState.port || 'USB'})`;
+      ardBadge.textContent = `ESP32: Connected (${ardState.port || 'USB'})`;
       ardBadge.className = "badge-uni badge-neon";
       btnConnect.textContent = "Disconnect";
       btnConnect.className = "btn-uni btn-dark text-xs py-1 px-2.5 border border-uni-alert text-uni-alert";
@@ -186,11 +200,11 @@ function updateDashboard(data) {
   setText("valHR", sp.heart_rate ? `${Math.round(sp.heart_rate)} BPM` : "-- BPM");
   setText("valAcc", sp.acc_mag !== undefined ? `${sp.acc_mag.toFixed(2)} g` : "--");
 
-  if (activeSource === "ARDUINO_LIVE") {
-    setText("sensorCardTitle", "Wearable Sensors (Arduino Live)");
+  if (activeSource === "HARDWARE_LIVE" || activeSource === "ARDUINO_LIVE") {
+    setText("sensorCardTitle", "Wearable Sensors (ESP32 Live)");
     setText("groundTruthLabel", "Hardware: MAX30102 + MPU6050");
-    setText("lblSlot2", "SpO2 Level");
-    setText("valSlot2", sp.spo2 !== undefined && sp.spo2 > 0 ? `${sp.spo2.toFixed(1)}%` : "--");
+    setText("lblSlot2", "IMU Die Temp (not skin)");
+    setText("valSlot2", sp.temperature !== undefined ? `${sp.temperature.toFixed(1)} °C` : "--");
     setText("lblSlot3", "Gyro Rotation");
     setText("valSlot3", sp.gyro_mag !== undefined ? `${Math.round(sp.gyro_mag)} °/s` : "--");
     setText("lblSlot4", "Finger Sensor");
@@ -210,7 +224,7 @@ function updateDashboard(data) {
     setText("valSlot2", sp.eda !== undefined ? `${sp.eda.toFixed(2)} µS` : "--");
     setText("lblSlot3", "Respiration");
     setText("valSlot3", sp.respiration !== undefined ? `${sp.respiration.toFixed(2)}` : "--");
-    setText("lblSlot4", "Skin Temp");
+    setText("lblSlot4", "Skin Temp (WESAD)");
     setText("valSlot4", sp.temperature !== undefined ? `${sp.temperature.toFixed(1)} °C` : "--");
 
     setText("chartLabel1", "Electrodermal Activity (EDA)");
@@ -227,8 +241,8 @@ function updateDashboard(data) {
   const probs = sm.probabilities || { baseline: 0, stress: 0, amusement: 0 };
   setText("sensorDistressScore", `${Math.round((sm.distress_score || 0) * 100)}%`);
 
-  if (activeSource === "ARDUINO_LIVE") {
-    setText("modelCardTitle", "Hardware Distress Inference (MAX30102+MPU6050)");
+  if (activeSource === "HARDWARE_LIVE" || activeSource === "ARDUINO_LIVE") {
+    setText("modelCardTitle", "ESP32 Distress Inference (CNN)");
     setText("lblProb1", "Normal Baseline");
     setText("lblProb2", "Tachycardia / Elevated HR");
     setText("lblProb3", "Impact Shock / Struggle Motion");
@@ -255,13 +269,39 @@ function updateDashboard(data) {
   setText("visionExpression", vm.facial_expression || "Neutral");
   setText("visionMovement", vm.movement_level || "Normal");
 
-  // 6. Multimodal Threat Score & State Machine
+  // 6. Multimodal Threat Score & State Machine (Asymmetric Smoothing & Persistence)
   const fusion = data.fusion || {};
-  const threatPct = fusion.threat_score_pct || 0;
-  setText("threatScoreText", `${threatPct.toFixed(1)}%`);
-  setBar("threatMeterFill", threatPct, fusion.verdict_color);
+  const rawTargetPct = fusion.threat_score_pct !== undefined ? Number(fusion.threat_score_pct) : 0.0;
 
-  threatChart.push(fusion.threat_score || 0);
+  // Asymmetric Attack / Decay Filter:
+  // Attack: responds rapidly when threat elevates (~0.4s to surge)
+  // Decay: holds and gracefully glides down over ~3-5 seconds so transient drops don't flap the verdict
+  if (rawTargetPct >= displayedThreatPct) {
+    const attackAlpha = 0.20; // Fast response to legitimate rising threat
+    displayedThreatPct += (rawTargetPct - displayedThreatPct) * attackAlpha;
+  } else {
+    const decayAlpha = 0.035; // Gentle ~3.5s - 5s decay hold
+    displayedThreatPct += (rawTargetPct - displayedThreatPct) * decayAlpha;
+  }
+
+  if (Math.abs(rawTargetPct - displayedThreatPct) < 0.2) {
+    displayedThreatPct = rawTargetPct;
+  }
+
+  // Rate-limit numerical text repaints to eliminate high-frequency digit vibration
+  const now = Date.now();
+  if (now - lastThreatTextUpdate >= 200) {
+    setText("threatScoreText", `${Math.round(displayedThreatPct)}%`);
+    lastThreatTextUpdate = now;
+  }
+
+  // Smooth CSS width transition for the meter fill
+  setBar("threatMeterFill", displayedThreatPct, fusion.verdict_color);
+
+  // Decimate canvas chart pushes to 5 Hz (every 4th sample) to show 24s of smooth history
+  if (telemetryFrameCount % 4 === 0) {
+    threatChart.push(displayedThreatPct / 100.0);
+  }
 
   // State Banner & Styling
   const smState = data.state_machine || {};
@@ -280,6 +320,14 @@ function updateDashboard(data) {
     }
   }
 
+  const threatFb = document.getElementById("threatFeedback");
+  if (threatFb && threatFb.textContent.includes("Raising threat")) {
+    if (currState.includes("ALERT") || currState.includes("THREAT") || currState.includes("EMERGENCY")) {
+      threatFb.textContent = "Threat active (" + currState + ")";
+      threatFb.className = "text-[11px] font-mono text-uni-alert font-bold";
+    }
+  }
+
   setText("fusionConsensus", fusion.agreement_status || "Normal / Congruent");
   setText("sensorWeightDisp", `Sensor (${Math.round((fusion.sensor_weight || 0.6) * 100)}%)`);
   setText("visionWeightDisp", `Vision (${Math.round((fusion.vision_weight || 0.4) * 100)}%)`);
@@ -292,7 +340,10 @@ function updateDashboard(data) {
     progressBar.style.width = `${rep.progress_fraction * 100}%`;
   }
 
-  // 8. Event Log Updates
+  // 8. Update Serial Monitor / Live Sensor Stream
+  updateSerialMonitor(data, fusion, currState);
+
+  // 9. Event Log Updates
   if (data.recent_logs && data.recent_logs.length > 0) {
     renderEventLog(data.recent_logs);
   }
@@ -303,7 +354,7 @@ function updateSourceUI() {
   const btnArd = document.getElementById("btnSourceArduino");
 
   if (btnWesad && btnArd) {
-    if (activeSource === "ARDUINO_LIVE") {
+    if (activeSource === "HARDWARE_LIVE" || activeSource === "ARDUINO_LIVE") {
       btnArd.className = "btn-uni btn-neon text-xs py-1 px-3";
       btnWesad.className = "btn-uni btn-dark text-xs py-1 px-3";
     } else {
@@ -333,6 +384,166 @@ function renderEventLog(logs) {
   }).join("");
 
   container.innerHTML = html;
+}
+
+function updateSerialMonitor(data, fusion, currState) {
+  const sp = data.sensor_packet || {};
+
+  // 1. Quick inspector values
+  setText("smValHR", sp.heart_rate ? `${Math.round(sp.heart_rate)} BPM` : "-- BPM");
+
+  if (activeSource === "HARDWARE_LIVE" || activeSource === "ARDUINO_LIVE") {
+    setText("smLblTemp", "IMU DIE TEMP");
+    setText("smValTemp", sp.temperature !== undefined ? `${sp.temperature.toFixed(1)} °C` : "-- °C");
+  } else {
+    setText("smLblTemp", "SKIN TEMP (WESAD)");
+    setText("smValTemp", sp.temperature !== undefined ? `${sp.temperature.toFixed(1)} °C` : "-- °C");
+  }
+
+  const accStr = (sp.acc_x !== undefined && sp.acc_y !== undefined && sp.acc_z !== undefined)
+    ? `(${sp.acc_x.toFixed(2)}, ${sp.acc_y.toFixed(2)}, ${sp.acc_z.toFixed(2)}) g`
+    : "--";
+  setText("smValAcc", accStr);
+
+  const gyroStr = (sp.gyro_x !== undefined && sp.gyro_y !== undefined && sp.gyro_z !== undefined)
+    ? `(${Math.round(sp.gyro_x)}, ${Math.round(sp.gyro_y)}, ${Math.round(sp.gyro_z)}) °/s`
+    : "--";
+  setText("smValGyro", gyroStr);
+
+  let contactStr = "--";
+  let contactClass = "font-bold text-uni-muted";
+  if (sp.finger_detected === true) {
+    contactStr = "Contact OK";
+    contactClass = "font-bold text-uni-neon";
+  } else if (sp.finger_detected === false) {
+    contactStr = "No Finger";
+    contactClass = "font-bold text-uni-alert";
+  }
+  const contactEl = document.getElementById("smValContact");
+  if (contactEl) {
+    contactEl.textContent = contactStr;
+    contactEl.className = contactClass;
+  }
+
+  setText("smValPackets", data.packet_counter || telemetryFrameCount);
+  setText("smSourceBadge", (activeSource === "HARDWARE_LIVE" || activeSource === "ARDUINO_LIVE") ? "Wearable Live" : "WESAD Replay");
+  setText("smRateBadge", `${data.fps || 20} Hz`);
+
+  // 2. Append formatted stream line every 4 ticks (~5 Hz for comfortable human viewing)
+  if (telemetryFrameCount % 4 === 0) {
+    const timeStr = new Date().toLocaleTimeString("en-GB", { hour12: false });
+    let line = "";
+    if (smFormat === "decoded") {
+      const hr = sp.heart_rate ? `${Math.round(sp.heart_rate)}` : "--";
+      const temp = sp.temperature !== undefined ? `${sp.temperature.toFixed(1)}C` : "--";
+      const acc = (sp.acc_x !== undefined) ? `${sp.acc_x.toFixed(2)},${sp.acc_y.toFixed(2)},${sp.acc_z.toFixed(2)}` : "--,--,--";
+      const gyro = (sp.gyro_x !== undefined) ? `${Math.round(sp.gyro_x)},${Math.round(sp.gyro_y)},${Math.round(sp.gyro_z)}` : "--,--,--";
+      const finger = sp.finger_detected === true ? "FINGER" : (sp.finger_detected === false ? "NO-FINGER" : "--");
+      const threat = `${Math.round(displayedThreatPct)}%`;
+      const state = currState || "SAFE";
+      line = `${timeStr} | HR=${hr.padStart(3)} | Temp=${temp.padStart(5)} | Acc=(${acc}) | Gyro=(${gyro}) | ${finger.padEnd(9)} | Threat=${threat.padStart(4)} | ${state}`;
+    } else {
+      // Raw CSV matching SensorPacket.to_csv() format
+      const f = (v, d = 4) => (v === undefined || v === null) ? "" : Number(v).toFixed(d);
+      const finger = (sp.finger_detected === true) ? "1" : (sp.finger_detected === false ? "0" : "");
+      const ts = sp.timestamp !== undefined ? Number(sp.timestamp).toFixed(4) : (Date.now() / 1000).toFixed(4);
+      line = `${ts},${f(sp.heart_rate, 1)},${f(sp.spo2, 1)},${f(sp.eda, 2)},${f(sp.temperature, 2)},${f(sp.acc_x, 3)},${f(sp.acc_y, 3)},${f(sp.acc_z, 3)},${f(sp.gyro_x, 2)},${f(sp.gyro_y, 2)},${f(sp.gyro_z, 2)},${finger},${sp.label !== undefined ? sp.label : "-1"}`;
+    }
+
+    smBuffer.push(line);
+    if (smBuffer.length > SM_MAX_LINES) {
+      smBuffer.shift();
+    }
+    renderSerialMonitor();
+  }
+}
+
+function renderSerialMonitor() {
+  const container = document.getElementById("smConsole");
+  if (!container) return;
+
+  const html = smBuffer.map(line => {
+    let cls = "text-uni-contrast";
+    if (line.includes("THREAT") || line.includes("ALERT") || line.includes("EMERGENCY")) {
+      cls = "text-uni-alert font-bold";
+    } else if (line.includes("CAUTION") || line.includes("SUSPICIOUS")) {
+      cls = "text-uni-cyan";
+    } else if (line.includes("NO-FINGER")) {
+      cls = "text-uni-muted";
+    }
+    return `<div class="${cls} whitespace-pre font-mono">${escapeHtml(line)}</div>`;
+  }).join("");
+
+  container.innerHTML = html;
+  if (smAutoScroll) {
+    container.scrollTop = container.scrollHeight;
+  }
+  setText("smLineCount", `${smBuffer.length} lines`);
+}
+
+function initSerialMonitorControls() {
+  const btnFormat = document.getElementById("btnSmFormat");
+  if (btnFormat) {
+    btnFormat.addEventListener("click", () => {
+      smFormat = smFormat === "decoded" ? "csv" : "decoded";
+      btnFormat.textContent = smFormat === "decoded" ? "Format: Decoded" : "Format: Raw CSV";
+      const legend = document.getElementById("smColumnsLegend");
+      if (legend) {
+        legend.textContent = smFormat === "decoded"
+          ? "Columns: TIME | HR | TEMP | ACC(X,Y,Z) | GYRO(X,Y,Z) | CONTACT | THREAT | STATE"
+          : "CSV: ts,hr,spo2,eda,temp,ax,ay,az,gx,gy,gz,finger,label";
+      }
+      renderSerialMonitor();
+    });
+  }
+
+  const btnScroll = document.getElementById("btnSmScroll");
+  if (btnScroll) {
+    btnScroll.addEventListener("click", () => {
+      smAutoScroll = !smAutoScroll;
+      btnScroll.textContent = smAutoScroll ? "Auto-Scroll: ON" : "Auto-Scroll: OFF";
+      btnScroll.className = smAutoScroll
+        ? "btn-uni btn-neon text-[10px] py-1 px-2.5"
+        : "btn-uni btn-dark text-[10px] py-1 px-2.5 border border-uni-border";
+      if (smAutoScroll) {
+        const container = document.getElementById("smConsole");
+        if (container) container.scrollTop = container.scrollHeight;
+      }
+    });
+  }
+
+  const btnCopy = document.getElementById("btnSmCopy");
+  if (btnCopy) {
+    btnCopy.addEventListener("click", async () => {
+      const text = smBuffer.join("\n");
+      try {
+        await navigator.clipboard.writeText(text);
+        btnCopy.textContent = "Copied!";
+        btnCopy.className = "btn-uni btn-neon text-[10px] py-1 px-2.5";
+        setTimeout(() => {
+          btnCopy.textContent = "Copy";
+          btnCopy.className = "btn-uni btn-dark text-[10px] py-1 px-2.5 border border-uni-border hover:border-uni-cyan";
+        }, 1500);
+      } catch (e) {
+        console.warn("Clipboard copy failed:", e);
+      }
+    });
+  }
+
+  const btnClear = document.getElementById("btnSmClear");
+  if (btnClear) {
+    btnClear.addEventListener("click", () => {
+      smBuffer.length = 0;
+      renderSerialMonitor();
+    });
+  }
+}
+
+function escapeHtml(str) {
+  return String(str)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
 }
 
 function setText(id, val) {
@@ -444,10 +655,24 @@ function setupEventListeners() {
   // Mute Alarm
   const muteBtn = document.getElementById("muteBtn");
   if (muteBtn) {
+    muteBtn.textContent = sfx.isMuted ? "MUTED" : "AUDIO ON";
     muteBtn.addEventListener("click", () => {
       sfx.isMuted = !sfx.isMuted;
-      muteBtn.textContent = sfx.isMuted ? "🔇 Alarm Off" : "🔊 Alarm On";
+      muteBtn.textContent = sfx.isMuted ? "MUTED" : "AUDIO ON";
       muteBtn.className = sfx.isMuted ? "btn-uni btn-alert text-xs py-1 px-2.5" : "btn-uni btn-dark text-xs py-1 px-2.5";
+    });
+  }
+
+  // Simulate Threat
+  const simBtn = document.getElementById("btnSimulateThreat");
+  if (simBtn) {
+    simBtn.addEventListener("click", async () => {
+      const fb = document.getElementById("threatFeedback");
+      if (fb) {
+        fb.textContent = "Raising threat... (~4s countdown)";
+        fb.className = "text-[11px] font-mono text-uni-alert animate-pulse";
+      }
+      await triggerScenario("MULTIMODAL_THREAT");
     });
   }
 
@@ -455,10 +680,52 @@ function setupEventListeners() {
   document.getElementById("btnAlertReset")?.addEventListener("click", async () => {
     try {
       await fetch("/api/alert/reset", { method: "POST" });
+      await triggerScenario("LIVE_FREE");
+      const fb = document.getElementById("threatFeedback");
+      if (fb) {
+        fb.textContent = "Alarm reset (LIVE_FREE)";
+        fb.className = "text-[11px] font-mono text-uni-cyan";
+        setTimeout(() => { if (fb.textContent.includes("LIVE_FREE")) fb.textContent = ""; }, 3000);
+      }
     } catch (e) {
       console.error("Alert reset error:", e);
     }
   });
+
+  // Test Telegram
+  const testTelegramBtn = document.getElementById("btnTestTelegram");
+  if (testTelegramBtn) {
+    testTelegramBtn.addEventListener("click", async () => {
+      const fb = document.getElementById("threatFeedback");
+      if (fb) {
+        fb.textContent = "Testing Telegram alert...";
+        fb.className = "text-[11px] font-mono text-uni-muted";
+      }
+      testTelegramBtn.disabled = true;
+      try {
+        const resp = await fetch("/api/alerts/test", { method: "POST" });
+        const res = await resp.json();
+        if (fb) {
+          if (res.delivered) {
+            fb.textContent = "Telegram: Delivered";
+            fb.className = "text-[11px] font-mono text-uni-neon font-bold";
+          } else {
+            const notifiers = (res.notifiers || []).map(n => n.name).join(", ");
+            fb.textContent = `Alert test failed (${notifiers || "null"} - alerts disabled in .env)`;
+            fb.className = "text-[11px] font-mono text-uni-alert";
+          }
+          setTimeout(() => { fb.textContent = ""; }, 7000);
+        }
+      } catch (e) {
+        if (fb) {
+          fb.textContent = `Test error: ${e.message}`;
+          fb.className = "text-[11px] font-mono text-uni-alert";
+        }
+      } finally {
+        testTelegramBtn.disabled = false;
+      }
+    });
+  }
 
   // Fusion Weight Slider
   const slider = document.getElementById("sensorWeightSlider");
@@ -524,3 +791,229 @@ async function sendWeightConfig(sW, vW) {
     console.error("Weight config error:", e);
   }
 }
+
+// --------------------------------------------------------------------------- //
+// Panel Visibility Dropdown & Layout Manager
+// --------------------------------------------------------------------------- //
+const DASHBOARD_PANELS = [
+  { id: "camera", label: "Camera & Pose Tracking", elId: "panelCameraFeed" },
+  { id: "sensors", label: "Wearable Sensors (Vitals)", elId: "panelWearableSensors" },
+  { id: "sensor-ml", label: "Sensor Sequence Model (ML)", elId: "panelSensorML" },
+  { id: "vision-ml", label: "Vision Distress Model", elId: "panelVisionML" },
+  { id: "threat-decision", label: "Multimodal Threat Decision", elId: "panelThreatDecision" },
+  { id: "demo-scenarios", label: "Demo Scenarios", elId: "panelDemoScenarios" },
+  { id: "replay-deck", label: "Sensor Replay & Timeline", elId: "panelReplayDeck" },
+  { id: "serial-monitor", label: "Serial Monitor & Stream", elId: "panelSerialMonitor" },
+  { id: "event-log", label: "Event Audit Log", elId: "panelEventLog" },
+];
+
+let panelVisibilityState = {};
+
+function loadPanelVisibility() {
+  const initial = {};
+  DASHBOARD_PANELS.forEach(p => { initial[p.id] = true; });
+  try {
+    const saved = localStorage.getItem("tw_panel_visibility");
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      Object.keys(initial).forEach(k => {
+        if (parsed[k] !== undefined) initial[k] = Boolean(parsed[k]);
+      });
+    }
+  } catch (e) {
+    /* fallback to defaults */
+  }
+  return initial;
+}
+
+function applyPanelVisibility(states) {
+  panelVisibilityState = states;
+
+  // Toggle individual card elements
+  DASHBOARD_PANELS.forEach(panel => {
+    const el = document.getElementById(panel.elId);
+    if (!el) return;
+    const isVisible = states[panel.id] !== false;
+    if (isVisible) {
+      el.classList.remove("hidden");
+    } else {
+      el.classList.add("hidden");
+    }
+  });
+
+  // Dynamically adapt Row 1 layout (Camera + Sensors)
+  const row1 = document.getElementById("row1Container");
+  const camEl = document.getElementById("panelCameraFeed");
+  const senEl = document.getElementById("panelWearableSensors");
+  if (row1 && camEl && senEl) {
+    const camVis = states["camera"] !== false;
+    const senVis = states["sensors"] !== false;
+    row1.style.display = (!camVis && !senVis) ? "none" : "";
+    if (camVis && !senVis) {
+      camEl.classList.remove("lg:col-span-7");
+      camEl.classList.add("lg:col-span-12");
+    } else if (!camVis && senVis) {
+      senEl.classList.remove("lg:col-span-5");
+      senEl.classList.add("lg:col-span-12");
+    } else if (camVis && senVis) {
+      camEl.classList.remove("lg:col-span-12");
+      camEl.classList.add("lg:col-span-7");
+      senEl.classList.remove("lg:col-span-12");
+      senEl.classList.add("lg:col-span-5");
+    }
+  }
+
+  // Dynamically adapt Row 2 layout (Sensor ML + Vision ML)
+  const row2 = document.getElementById("row2Container");
+  const smlEl = document.getElementById("panelSensorML");
+  const vmlEl = document.getElementById("panelVisionML");
+  if (row2 && smlEl && vmlEl) {
+    const smlVis = states["sensor-ml"] !== false;
+    const vmlVis = states["vision-ml"] !== false;
+    row2.style.display = (!smlVis && !vmlVis) ? "none" : "";
+    if (smlVis && !vmlVis) {
+      smlEl.classList.add("md:col-span-2");
+    } else if (!smlVis && vmlVis) {
+      vmlEl.classList.add("md:col-span-2");
+    } else {
+      smlEl.classList.remove("md:col-span-2");
+      vmlEl.classList.remove("md:col-span-2");
+    }
+  }
+
+  // Dynamically adapt Row 4 layout (Demo Scenarios + Replay Deck)
+  const row4 = document.getElementById("row4Container");
+  const demoEl = document.getElementById("panelDemoScenarios");
+  const repEl = document.getElementById("panelReplayDeck");
+  if (row4 && demoEl && repEl) {
+    const demoVis = states["demo-scenarios"] !== false;
+    const repVis = states["replay-deck"] !== false;
+    row4.style.display = (!demoVis && !repVis) ? "none" : "";
+    if (demoVis && !repVis) {
+      demoEl.classList.remove("lg:col-span-6");
+      demoEl.classList.add("lg:col-span-12");
+    } else if (!demoVis && repVis) {
+      repEl.classList.remove("lg:col-span-6");
+      repEl.classList.add("lg:col-span-12");
+    } else if (demoVis && repVis) {
+      demoEl.classList.remove("lg:col-span-12");
+      demoEl.classList.add("lg:col-span-6");
+      repEl.classList.remove("lg:col-span-12");
+      repEl.classList.add("lg:col-span-6");
+    }
+  }
+
+  // Persist
+  try {
+    localStorage.setItem("tw_panel_visibility", JSON.stringify(states));
+  } catch (e) {
+    /* private mode */
+  }
+
+  // Update button label with active count
+  const activeCount = DASHBOARD_PANELS.filter(p => states[p.id] !== false).length;
+  const toggleBtn = document.getElementById("btnPanelToggle");
+  if (toggleBtn) {
+    toggleBtn.innerHTML = `<span>Panels (${activeCount}/${DASHBOARD_PANELS.length})</span><span class="text-[10px] text-uni-muted font-mono" id="panelDropdownArrow">[v]</span>`;
+  }
+}
+
+function initPanelDropdown() {
+  const container = document.getElementById("panelDropdownWrap");
+  const toggleBtn = document.getElementById("btnPanelToggle");
+  const menu = document.getElementById("panelDropdownMenu");
+  const listContainer = document.getElementById("panelCheckboxesList");
+  if (!container || !toggleBtn || !menu || !listContainer) return;
+
+  const currentStates = loadPanelVisibility();
+
+  // Render checkbox rows in dropdown
+  listContainer.innerHTML = DASHBOARD_PANELS.map(panel => {
+    const checked = currentStates[panel.id] !== false ? "checked" : "";
+    return `
+      <label class="flex items-center justify-between gap-2 p-1.5 hover:bg-uni-panel cursor-pointer rounded select-none border border-transparent hover:border-uni-border/50 transition-colors">
+        <span class="text-uni-contrast text-[11px] truncate">${escapeHtml(panel.label)}</span>
+        <input type="checkbox" data-panel-id="${panel.id}" ${checked} class="accent-uni-neon cursor-pointer h-3.5 w-3.5">
+      </label>
+    `;
+  }).join("");
+
+  applyPanelVisibility(currentStates);
+
+  // Wire up checkbox toggles
+  listContainer.querySelectorAll("input[type='checkbox']").forEach(input => {
+    input.addEventListener("change", (e) => {
+      const pid = e.target.getAttribute("data-panel-id");
+      panelVisibilityState[pid] = e.target.checked;
+      applyPanelVisibility(panelVisibilityState);
+    });
+  });
+
+  // Toggle Dropdown Visibility
+  const toggleMenu = (open) => {
+    const isHidden = menu.classList.contains("hidden");
+    const willOpen = open !== undefined ? open : isHidden;
+    if (willOpen) {
+      menu.classList.remove("hidden");
+      const arrow = document.getElementById("panelDropdownArrow");
+      if (arrow) arrow.textContent = "[^]";
+    } else {
+      menu.classList.add("hidden");
+      const arrow = document.getElementById("panelDropdownArrow");
+      if (arrow) arrow.textContent = "[v]";
+    }
+  };
+
+  toggleBtn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    toggleMenu();
+  });
+
+  // Close when clicking outside
+  document.addEventListener("click", (e) => {
+    if (!container.contains(e.target)) {
+      toggleMenu(false);
+    }
+  });
+
+  // Close on Escape key
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") {
+      toggleMenu(false);
+    }
+  });
+
+  // Quick Action Buttons
+  const btnAll = document.getElementById("btnShowAllPanels");
+  if (btnAll) {
+    btnAll.addEventListener("click", (e) => {
+      e.stopPropagation();
+      DASHBOARD_PANELS.forEach(p => { panelVisibilityState[p.id] = true; });
+      listContainer.querySelectorAll("input[type='checkbox']").forEach(cb => { cb.checked = true; });
+      applyPanelVisibility(panelVisibilityState);
+    });
+  }
+
+  const btnNone = document.getElementById("btnHideAllPanels");
+  if (btnNone) {
+    btnNone.addEventListener("click", (e) => {
+      e.stopPropagation();
+      DASHBOARD_PANELS.forEach(p => { panelVisibilityState[p.id] = false; });
+      listContainer.querySelectorAll("input[type='checkbox']").forEach(cb => { cb.checked = false; });
+      applyPanelVisibility(panelVisibilityState);
+    });
+  }
+
+  const btnReset = document.getElementById("btnResetPanels");
+  if (btnReset) {
+    btnReset.addEventListener("click", (e) => {
+      e.stopPropagation();
+      try { localStorage.removeItem("tw_panel_visibility"); } catch (err) {}
+      const resetStates = {};
+      DASHBOARD_PANELS.forEach(p => { resetStates[p.id] = true; });
+      listContainer.querySelectorAll("input[type='checkbox']").forEach(cb => { cb.checked = true; });
+      applyPanelVisibility(resetStates);
+    });
+  }
+}
+
